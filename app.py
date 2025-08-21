@@ -44,6 +44,11 @@ def favicon():
     """Retorna um favicon vazio para evitar erro 404"""
     return '', 204
 
+@app.route('/health')
+def health_check():
+    """Health check para Railway"""
+    return jsonify({'status': 'healthy', 'service': 'deposito-pagcorp'}), 200
+
 @app.route('/')
 def dashboard():
     """Serve o dashboard HTML"""
