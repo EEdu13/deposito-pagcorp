@@ -5,11 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DEPÓSITO DE SALDO PAGCORP - Sistema de Refeições</title>
     <meta name="theme-color" content="#2563eb">
-    <meta name="description" content="Sistema de acompanhamento de pedidos">
+    <meta name="description" content="Sistema de depósito PAGCORP">
     
     <!-- PWA Meta Tags -->
-    <link rel="manifest" href="data:application/json,{%22name%22:%22PEDIDOS%20Dashboard%22,%22short_name%22:%22Pedidos%22,%22description%22:%22Sistema%20de%20acompanhamento%20de%20pedidos%22,%22start_url%22:%22./%22,%22display%22:%22standalone%22,%22background_color%22:%22%23ffffff%22,%22theme_color%22:%22%232563eb%22,%22icons%22:[{%22src%22:%22data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20100%20100'%3E%3Crect%20width='100'%20height='100'%20fill='%232563eb'/%3E%3Ctext%20x='50'%20y='55'%20font-family='Arial'%20font-size='40'%20fill='white'%20text-anchor='middle'%3EPD%3C/text%3E%3C/svg%3E%22,%22sizes%22:%22192x192%22,%22type%22:%22image/svg+xml%22}]}">
-    
+    <link rel="manifest" href="data:application/json,{%22name%22:%22DEPÓSITO%20PAGCORP%22,%22short_name%22:%22PAGCORP%22,%22description%22:%22Sistema%20de%20depósito%20PAGCORP%22,%22start_url%22:%22./%22,%22display%22:%22standalone%22,%22background_color%22:%22%23ffffff%22,%22theme_color%22:%22%232563eb%22,%22icons%22:[{%22src%22:%22data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS3GwHAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAAdgAAAHYBTnsmCAAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAANCSURBVHic7dMxAQAwCASAKr+kTtv+QMGASFh7Zs6ALPMBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMjyBwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA%22,%22sizes%22:%22192x192%22,%22type%22:%22image/png%22}]}">\n    
     <style>
         * {
             margin: 0;
@@ -811,7 +810,7 @@
                         }
                     });
                     
-                    showNotification(`${grupo.pedidos.length} pedido(s) marcado(s) como depositado(s) (modo demo)!`, 'success');
+                    showNotification(`${grupo.pedidos.length} pedido(s) marcado(s) como depositado(s)!`, 'success');
                     aplicarFiltros();
                     return;
                 }
@@ -932,7 +931,7 @@
                         }
                     });
                     
-                    showNotification(`${todosPedidosParaDepositar.length} pedido(s) marcado(s) como depositado(s) (modo demo)!`, 'success');
+                    showNotification(`${todosPedidosParaDepositar.length} pedido(s) marcado(s) como depositado(s)!`, 'success');
                     
                     document.getElementById('selectAll').checked = false;
                     updateBulkActions();
