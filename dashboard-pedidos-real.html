@@ -815,8 +815,10 @@
                     return;
                 }
                 
-                // Fazer requisição para o servidor local
-                const apiUrl = 'http://localhost:5000/api/pedidos/depositar';
+                // Fazer requisição para o servidor
+                const apiUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+                    ? 'http://localhost:5000/api/pedidos/depositar'
+                    : '/api/pedidos/depositar';
                 
                 showNotification('Enviando para o servidor...', 'info');
                 
@@ -939,8 +941,10 @@
                     return;
                 }
                 
-                // Fazer requisição para o servidor local
-                const apiUrl = 'http://localhost:5000/api/pedidos/depositar';
+                // Fazer requisição para o servidor
+                const apiUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+                    ? 'http://localhost:5000/api/pedidos/depositar'
+                    : '/api/pedidos/depositar';
                 
                 showNotification('Enviando para o servidor...', 'info');
                 
