@@ -1,1 +1,1 @@
-web: python3 app.py
+web: chmod +x start.sh && ./start.sh
