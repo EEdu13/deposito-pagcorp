@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DEPÓSITO DE SALDO PAGCORP - Sistema de Refeições</title>
+    <meta name="theme-color" content="#2563eb">
+    <meta name="description" content="Sistema de acompanhamento de pedidos">
+    
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="data:application/json,{%22name%22:%22PEDIDOS%20Dashboard%22,%22short_name%22:%22Pedidos%22,%22description%22:%22Sistema%20de%20acompanhamento%20de%20pedidos%22,%22start_url%22:%22./%22,%22display%22:%22standalone%22,%22background_color%22:%22%23ffffff%22,%22theme_color%22:%22%232563eb%22,%22icons%22:[{%22src%22:%22data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20100%20100'%3E%3Crect%20width='100'%20height='100'%20fill='%232563eb'/%3E%3Ctext%20x='50'%20y='55'%20font-family='Arial'%20font-size='40'%20fill='white'%20text-anchor='middle'%3EPD%3C/text%3E%3C/svg%3E%22,%22sizes%22:%22192x192%22,%22type%22:%22image/svg+xml%22}]}">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .app-container {
+            max-width: 100%;
+            margin: 0 auto;
+            background: #fff;
+            min-height: 100vh;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .header h1 .logo {
+            width: 32px;
+            height: 32px;
+            background: white;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            color: #2563eb;
+            font-weight: bold;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+        }
+
+        .header-btn {
+            padding: 0.5rem 0.75rem;
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 8px;
+            color: white;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .header-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-1px);
+        }
+
+        .filters-section {
+            padding: 1rem;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .date-filter {
+            margin-bottom: 1rem;
+        }
+
+        .date-filter label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .date-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+        }
+
+        .date-inputs input {
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            background: white;
+        }
+
+        .status-filters {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .status-btn {
+            padding: 0.75rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            text-align: center;
+            font-size: 0.8rem;
+        }
+
+        .status-btn.active {
+            border-color: #2563eb;
+            background: #2563eb;
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+
+        .status-btn:hover:not(.active) {
+            border-color: #94a3b8;
+            background: #f1f5f9;
+        }
+
+        .bulk-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            align-items: center;
+        }
+
+        .bulk-actions input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #2563eb;
+        }
+
+        .bulk-actions button {
+            padding: 0.5rem 1rem;
+            background: #059669;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .bulk-actions button:hover {
+            background: #047857;
+            transform: translateY(-1px);
+        }
+
+        .bulk-actions button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.5rem;
+            padding: 1rem;
+            background: #f8fafc;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1rem;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .stat-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: #6b7280;
+            margin-top: 0.25rem;
+        }
+
+        .payments-container {
+            padding: 1rem;
+            max-height: 50vh;
+            overflow-y: auto;
+        }
+
+        .payment-card {
+            background: white;
+            border-radius: 16px;
+            margin-bottom: 0.75rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .payment-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .payment-header {
+            padding: 1rem;
+            cursor: pointer;
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .payment-checkbox {
+            width: 18px;
+            height: 18px;
+            accent-color: #2563eb;
+        }
+
+        .payment-main-content {
+            flex: 1;
+        }
+
+
+
+        .payment-main-info {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .payment-title {
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 0.25rem;
+            font-size: 0.9rem;
+        }
+
+        .payment-subtitle {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .payment-amount {
+            text-align: right;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .amount-value {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #059669;
+        }
+
+        .deposit-btn {
+            width: 40px;
+            height: 40px;
+            background: #059669;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .deposit-btn:hover {
+            background: #047857;
+            transform: scale(1.1);
+        }
+
+        .deposit-btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .deposited-badge {
+            background: #10b981;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 50px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            border: none;
+            min-width: 40px;
+            height: 40px;
+            justify-content: center;
+        }
+
+        .payment-details {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .payment-card.expanded .payment-details {
+            max-height: 300px;
+        }
+
+        .payment-details-content {
+            padding: 0 1rem 1rem;
+            border-top: 1px solid #f3f4f6;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.3rem;
+            padding: 0.2rem 0;
+            font-size: 0.85rem;
+        }
+
+        .detail-label {
+            font-weight: 500;
+            color: #6b7280;
+            min-width: 100px;
+        }
+
+        .detail-value {
+            font-weight: 600;
+            color: #1f2937;
+            text-align: right;
+            flex: 1;
+            margin-left: 0.5rem;
+        }
+
+        .pedido-individual {
+            border: 1px solid #f0f0f0;
+            padding: 0.4rem;
+            margin: 0.3rem 0;
+            border-radius: 6px;
+            background: #fafafa;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #6b7280;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #6b7280;
+        }
+
+        .empty-state svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #2563eb;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive adjustments */
+        @media (min-width: 768px) {
+            .app-container {
+                max-width: 420px;
+                margin: 0 auto;
+                border-radius: 20px;
+                overflow: hidden;
+                margin-top: 2rem;
+            }
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateX(-50%) translateY(-100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes slideUp {
+            from {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(-50%) translateY(-100%);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header class="header">
+            <h1>
+                <span class="logo">💳</span>
+                DEPÓSITO DE SALDO PAGCORP
+            </h1>
+            <div class="header-actions">
+                <button class="header-btn" onclick="limparCache()">Limpar Cache</button>
+                <button class="header-btn" onclick="atualizarDados()">Atualizar</button>
+            </div>
+        </header>
+
+        <section class="filters-section">
+            <div class="date-filter">
+                <label>Filtrar por Data de Envio</label>
+                <div class="date-inputs">
+                    <input type="date" id="dataInicio" onchange="aplicarFiltros()">
+                    <input type="date" id="dataFim" onchange="aplicarFiltros()">
+                </div>
+            </div>
+
+            <div class="status-filters">
+                <button class="status-btn active" data-status="todos" onclick="filtrarPorStatus('todos')">Todos</button>
+                <button class="status-btn" data-status="pendente" onclick="filtrarPorStatus('pendente')">Pendente</button>
+                <button class="status-btn" data-status="aprovado" onclick="filtrarPorStatus('aprovado')">Aprovado</button>
+                <button class="status-btn" data-status="depositado" onclick="filtrarPorStatus('depositado')">Depositado</button>
+            </div>
+
+            <div class="bulk-actions">
+                <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
+                <label for="selectAll">Selecionar Todos</label>
+                <button onclick="depositarSelecionados()" id="bulkDepositBtn" disabled>Depositar Selecionados</button>
+            </div>
+        </section>
+
+        <section class="summary-stats">
+            <div class="stat-card">
+                <div class="stat-value" id="totalCount">0</div>
+                <div class="stat-label">Total de Pedidos</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="selectedCount">0</div>
+                <div class="stat-label">Total Selecionados</div>
+            </div>
+        </section>
+
+        <section class="payments-container" id="paymentsContainer">
+            <div class="loading">
+                <p>Clique em "Atualizar" para carregar os dados</p>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        let dadosReais = [];
+        let dadosFiltrados = [];
+        let filtroAtivo = 'todos';
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', function() {
+            // Definir data de hoje nos filtros
+            const hoje = new Date().toISOString().split('T')[0];
+            document.getElementById('dataInicio').value = hoje;
+            document.getElementById('dataFim').value = hoje;
+            
+            mostrarMensagemInicial();
+        });
+
+        function mostrarMensagemInicial() {
+            const container = document.getElementById('paymentsContainer');
+            container.innerHTML = `
+                <div class="loading">
+                    <p>Clique em "Atualizar" para carregar os dados</p>
+                </div>
+            `;
+        }
+
+        async function atualizarDados() {
+            try {
+                showNotification('Conectando ao Azure SQL Server...', 'info');
+                
+                const container = document.getElementById('paymentsContainer');
+                container.innerHTML = `
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>Conectando ao banco de dados...</p>
+                    </div>
+                `;
+
+                // Detectar URL da API automaticamente
+                const apiUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+                    ? 'http://localhost:5000/api/pedidos'
+                    : '/api/pedidos';
+
+                const response = await fetch(apiUrl);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const resultado = await response.json();
+
+                if (resultado.success && resultado.data) {
+                    // Filtrar dados onde FECHAMENTO != 'SIM'
+                    dadosReais = resultado.data.filter(pedido => 
+                        pedido.FECHAMENTO !== 'SIM' && pedido.FECHAMENTO !== 'Sim' && pedido.FECHAMENTO !== 'sim'
+                    );
+                    
+                    aplicarFiltros();
+                    showNotification(`${dadosReais.length} pedidos carregados com sucesso!`, 'success');
+                } else {
+                    throw new Error(resultado.error || 'Erro desconhecido');
+                }
+
+            } catch (error) {
+                console.error('Erro:', error);
+                
+                const container = document.getElementById('paymentsContainer');
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <h3>Erro de Conexão</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+                
+                showNotification(`Erro: ${error.message}`, 'error');
+            }
+        }
+
+        function agruparPorDiaEResponsavel(dados) {
+            const grupos = {};
+            
+            dados.forEach((pedido, indexOriginal) => {
+                const dataEnvio = pedido.DATA_ENVIO1 ? new Date(pedido.DATA_ENVIO1).toDateString() : 'Sem data';
+                const nomeLider = pedido.NOME_LIDER || 'Sem líder';
+                const chave = `${dataEnvio}_${nomeLider}`;
+                
+                if (!grupos[chave]) {
+                    grupos[chave] = {
+                        responsavel: nomeLider,
+                        dataEnvio: dataEnvio,
+                        pedidos: [],
+                        totalValue: 0,
+                        firstPedido: pedido
+                    };
+                }
+                
+                grupos[chave].pedidos.push({...pedido, indexOriginal});
+                grupos[chave].totalValue += parseFloat(pedido.TOTAL_PAGAR) || 0;
+            });
+            
+            return Object.values(grupos);
+        }
+
+        function aplicarFiltros() {
+            let dados = [...dadosReais];
+
+            // Filtro por data
+            const dataInicio = document.getElementById('dataInicio').value;
+            const dataFim = document.getElementById('dataFim').value;
+
+            if (dataInicio || dataFim) {
+                dados = dados.filter(pedido => {
+                    if (!pedido.DATA_ENVIO1) return false;
+                    
+                    const dataEnvio = new Date(pedido.DATA_ENVIO1);
+                    const inicio = dataInicio ? new Date(dataInicio) : null;
+                    const fim = dataFim ? new Date(dataFim) : null;
+
+                    if (inicio && dataEnvio < inicio) return false;
+                    if (fim && dataEnvio > fim) return false;
+                    return true;
+                });
+            }
+
+            // Filtro por status
+            if (filtroAtivo !== 'todos') {
+                dados = dados.filter(pedido => {
+                    switch (filtroAtivo) {
+                        case 'pendente':
+                            return !pedido.APROVADO_POR || pedido.APROVADO_POR.trim() === '';
+                        case 'aprovado':
+                            return pedido.APROVADO_POR && pedido.APROVADO_POR.trim() !== '' && pedido.DEPOSITADO !== 'DEPOSITADO';
+                        case 'depositado':
+                            return pedido.DEPOSITADO === 'DEPOSITADO';
+                        default:
+                            return true;
+                    }
+                });
+            }
+
+            dadosFiltrados = dados;
+            renderizarPedidos();
+            atualizarEstatisticas();
+        }
+
+        function filtrarPorStatus(status) {
+            filtroAtivo = status;
+            
+            // Atualizar botões
+            document.querySelectorAll('.status-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`[data-status="${status}"]`).classList.add('active');
+            
+            aplicarFiltros();
+        }
+
+        function renderizarPedidos() {
+            const container = document.getElementById('paymentsContainer');
+            
+            if (!dadosFiltrados || dadosFiltrados.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <h3>Nenhum pedido encontrado</h3>
+                        <p>Verifique os filtros aplicados</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Agrupar dados
+            const gruposAgrupados = agruparPorDiaEResponsavel(dadosFiltrados);
+
+            const html = gruposAgrupados.map((grupo, groupIndex) => {
+                const responsavel = grupo.responsavel;
+                const pagcgorp = grupo.firstPedido.PAGCORP || grupo.firstPedido.PAGCGORP || 'Sem código';
+                const totalValue = grupo.totalValue;
+                const quantidadePedidos = grupo.pedidos.length;
+                const isDepositado = grupo.pedidos.every(p => p.DEPOSITADO === 'DEPOSITADO');
+
+                const detalhesHtml = grupo.pedidos.map(pedido => {
+                    const valorIndividual = parseFloat(pedido.TOTAL_PAGAR) || 0;
+                    const dataEnvio = pedido.DATA_ENVIO1 ? new Date(pedido.DATA_ENVIO1).toLocaleDateString('pt-BR') : 'N/A';
+                    const projeto = pedido.PROJETO || 'N/A';
+                    const nomeLider = pedido.NOME_LIDER || 'N/A';
+                    const tipoRefeicao = pedido.TIPO_REFEICAO || 'N/A';
+
+                    return `
+                        <div class="pedido-individual">
+                            <div class="detail-row">
+                                <span class="detail-label">Valor:</span>
+                                <span class="detail-value">R$ ${valorIndividual.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Data:</span>
+                                <span class="detail-value">${dataEnvio}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Projeto:</span>
+                                <span class="detail-value">${projeto}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Líder:</span>
+                                <span class="detail-value">${nomeLider}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Refeição:</span>
+                                <span class="detail-value">${tipoRefeicao}</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                const quantidadeText = quantidadePedidos > 1 ? `<div style="font-size: 0.8rem; color: #666;">${quantidadePedidos} pedidos do dia</div>` : '';
+
+                return `
+                    <div class="payment-card" data-group-id="${groupIndex}">
+                        <div class="payment-header" onclick="togglePaymentDetails(${groupIndex})">
+                            <input type="checkbox" class="payment-checkbox" data-group-index="${groupIndex}" onchange="updateBulkActions()" onclick="event.stopPropagation()">
+                            <div class="payment-main-content">
+                                <div class="payment-main-info">
+                                    <div>
+                                        <div class="payment-title">${responsavel}</div>
+                                        <div class="payment-subtitle">${pagcgorp}</div>
+                                        ${quantidadeText}
+                                    </div>
+                                    <div class="payment-amount">
+                                        <div class="amount-value">R$ ${totalValue.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</div>
+                                        ${isDepositado ? 
+                                            '<span class="deposited-badge">✓ DEPOSITADO</span>' : 
+                                            `<button class="deposit-btn" onclick="depositarGrupo(${groupIndex})" title="Depositar">$</button>`
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="payment-details">
+                            <div class="payment-details-content">
+                                ${detalhesHtml}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = html;
+        }
+
+        function togglePaymentDetails(index) {
+            const cards = document.querySelectorAll('.payment-card');
+            if (cards[index]) {
+                cards[index].classList.toggle('expanded');
+            }
+        }
+
+        function toggleSelectAll() {
+            const selectAll = document.getElementById('selectAll');
+            const checkboxes = document.querySelectorAll('.payment-checkbox');
+            
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = selectAll.checked;
+            });
+            
+            updateBulkActions();
+        }
+
+        function updateBulkActions() {
+            const checkboxes = document.querySelectorAll('.payment-checkbox:checked');
+            const bulkBtn = document.getElementById('bulkDepositBtn');
+            const selectAll = document.getElementById('selectAll');
+            
+            bulkBtn.disabled = checkboxes.length === 0;
+            
+            const totalCheckboxes = document.querySelectorAll('.payment-checkbox').length;
+            selectAll.checked = checkboxes.length === totalCheckboxes && totalCheckboxes > 0;
+            
+            // Atualizar contador de selecionados
+            document.getElementById('selectedCount').textContent = checkboxes.length;
+        }
+
+        async function depositarGrupo(groupIndex) {
+            try {
+                const grupos = agruparPorDiaEResponsavel(dadosFiltrados);
+                const grupo = grupos[groupIndex];
+                
+                // Preparar dados para envio
+                const pedidosParaDepositar = grupo.pedidos.map(pedido => ({
+                    RESPONSAVEL_PELO_CARTAO: pedido.RESPONSAVEL_PELO_CARTAO,
+                    DATA_ENVIO1: pedido.DATA_ENVIO1,
+                    PAGCORP: pedido.PAGCORP || pedido.PAGCGORP,
+                    PAGCGORP: pedido.PAGCGORP,
+                    TOTAL_PAGAR: pedido.TOTAL_PAGAR,
+                    TIPO_REFEICAO: pedido.TIPO_REFEICAO
+                }));
+                
+                // Detectar se está rodando localmente
+                const isLocal = window.location.hostname === 'localhost' || 
+                               window.location.hostname === '127.0.0.1' || 
+                               window.location.hostname === '0.0.0.0';
+                
+                if (!isLocal) {
+                    // Em produção, simular o depósito localmente
+                    grupo.pedidos.forEach(pedido => {
+                        const indexOriginal = dadosFiltrados.findIndex(p => p === pedido);
+                        if (indexOriginal !== -1) {
+                            dadosFiltrados[indexOriginal].DEPOSITADO = 'DEPOSITADO';
+                        }
+                        
+                        const indexReal = dadosReais.findIndex(p => 
+                            p.RESPONSAVEL_PELO_CARTAO === pedido.RESPONSAVEL_PELO_CARTAO && 
+                            p.DATA_ENVIO1 === pedido.DATA_ENVIO1
+                        );
+                        if (indexReal !== -1) {
+                            dadosReais[indexReal].DEPOSITADO = 'DEPOSITADO';
+                        }
+                    });
+                    
+                    showNotification(`${grupo.pedidos.length} pedido(s) marcado(s) como depositado(s) (modo demo)!`, 'success');
+                    aplicarFiltros();
+                    return;
+                }
+                
+                // Fazer requisição para o servidor local
+                const apiUrl = 'http://localhost:5000/api/pedidos/depositar';
+                
+                showNotification('Enviando para o servidor...', 'info');
+                
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        pedidos: pedidosParaDepositar
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Servidor offline ou erro HTTP: ${response.status}`);
+                }
+                
+                const resultado = await response.json();
+                
+                if (resultado.success) {
+                    showNotification(`${resultado.pedidos_atualizados} pedido(s) depositado(s) no banco!`, 'success');
+                    
+                    // Recarregar dados do servidor para atualizar a interface
+                    await atualizarDados();
+                } else {
+                    throw new Error(resultado.error || 'Erro desconhecido');
+                }
+                
+            } catch (error) {
+                console.error('Erro ao depositar grupo:', error);
+                
+                // Fallback: simular depósito localmente se servidor falhar
+                const grupos = agruparPorDiaEResponsavel(dadosFiltrados);
+                const grupo = grupos[groupIndex];
+                
+                grupo.pedidos.forEach(pedido => {
+                    const indexOriginal = dadosFiltrados.findIndex(p => p === pedido);
+                    if (indexOriginal !== -1) {
+                        dadosFiltrados[indexOriginal].DEPOSITADO = 'DEPOSITADO';
+                    }
+                    
+                    const indexReal = dadosReais.findIndex(p => 
+                        p.RESPONSAVEL_PELO_CARTAO === pedido.RESPONSAVEL_PELO_CARTAO && 
+                        p.DATA_ENVIO1 === pedido.DATA_ENVIO1
+                    );
+                    if (indexReal !== -1) {
+                        dadosReais[indexReal].DEPOSITADO = 'DEPOSITADO';
+                    }
+                });
+                
+                showNotification(`${grupo.pedidos.length} pedido(s) marcado(s) localmente (servidor offline)`, 'success');
+                aplicarFiltros();
+            }
+        }
+
+        async function depositarSelecionados() {
+            try {
+                const checkboxes = document.querySelectorAll('.payment-checkbox:checked');
+                const grupos = agruparPorDiaEResponsavel(dadosFiltrados);
+                
+                let todosPedidosParaDepositar = [];
+                
+                checkboxes.forEach(checkbox => {
+                    const groupIndex = parseInt(checkbox.dataset.groupIndex);
+                    const grupo = grupos[groupIndex];
+                    
+                    if (grupo) {
+                        grupo.pedidos.forEach(pedido => {
+                            todosPedidosParaDepositar.push({
+                                RESPONSAVEL_PELO_CARTAO: pedido.RESPONSAVEL_PELO_CARTAO,
+                                DATA_ENVIO1: pedido.DATA_ENVIO1,
+                                PAGCORP: pedido.PAGCORP || pedido.PAGCGORP,
+                                PAGCGORP: pedido.PAGCGORP,
+                                TOTAL_PAGAR: pedido.TOTAL_PAGAR,
+                                TIPO_REFEICAO: pedido.TIPO_REFEICAO
+                            });
+                        });
+                    }
+                });
+                
+                if (todosPedidosParaDepositar.length === 0) {
+                    showNotification('Nenhum pedido selecionado para depositar', 'error');
+                    return;
+                }
+                
+                // Detectar se está rodando localmente
+                const isLocal = window.location.hostname === 'localhost' || 
+                               window.location.hostname === '127.0.0.1' || 
+                               window.location.hostname === '0.0.0.0';
+                
+                if (!isLocal) {
+                    // Em produção, simular o depósito localmente
+                    checkboxes.forEach(checkbox => {
+                        const groupIndex = parseInt(checkbox.dataset.groupIndex);
+                        const grupo = grupos[groupIndex];
+                        
+                        if (grupo) {
+                            grupo.pedidos.forEach(pedido => {
+                                const indexFiltrado = dadosFiltrados.findIndex(p => p === pedido);
+                                if (indexFiltrado !== -1) {
+                                    dadosFiltrados[indexFiltrado].DEPOSITADO = 'DEPOSITADO';
+                                }
+                                
+                                const indexReal = dadosReais.findIndex(p => 
+                                    p.RESPONSAVEL_PELO_CARTAO === pedido.RESPONSAVEL_PELO_CARTAO && 
+                                    p.DATA_ENVIO1 === pedido.DATA_ENVIO1
+                                );
+                                if (indexReal !== -1) {
+                                    dadosReais[indexReal].DEPOSITADO = 'DEPOSITADO';
+                                }
+                            });
+                        }
+                    });
+                    
+                    showNotification(`${todosPedidosParaDepositar.length} pedido(s) marcado(s) como depositado(s) (modo demo)!`, 'success');
+                    
+                    document.getElementById('selectAll').checked = false;
+                    updateBulkActions();
+                    aplicarFiltros();
+                    return;
+                }
+                
+                // Fazer requisição para o servidor local
+                const apiUrl = 'http://localhost:5000/api/pedidos/depositar';
+                
+                showNotification('Enviando para o servidor...', 'info');
+                
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        pedidos: todosPedidosParaDepositar
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Servidor offline ou erro HTTP: ${response.status}`);
+                }
+                
+                const resultado = await response.json();
+                
+                if (resultado.success) {
+                    showNotification(`${resultado.pedidos_atualizados} pedido(s) depositado(s) no banco!`, 'success');
+                    
+                    document.getElementById('selectAll').checked = false;
+                    updateBulkActions();
+                    
+                    // Recarregar dados do servidor para atualizar a interface
+                    await atualizarDados();
+                } else {
+                    throw new Error(resultado.error || 'Erro desconhecido');
+                }
+                
+            } catch (error) {
+                console.error('Erro ao depositar selecionados:', error);
+                
+                // Fallback: simular depósito localmente se servidor falhar
+                const checkboxes = document.querySelectorAll('.payment-checkbox:checked');
+                const grupos = agruparPorDiaEResponsavel(dadosFiltrados);
+                let totalPedidos = 0;
+                
+                checkboxes.forEach(checkbox => {
+                    const groupIndex = parseInt(checkbox.dataset.groupIndex);
+                    const grupo = grupos[groupIndex];
+                    
+                    if (grupo) {
+                        grupo.pedidos.forEach(pedido => {
+                            const indexFiltrado = dadosFiltrados.findIndex(p => p === pedido);
+                            if (indexFiltrado !== -1) {
+                                dadosFiltrados[indexFiltrado].DEPOSITADO = 'DEPOSITADO';
+                            }
+                            
+                            const indexReal = dadosReais.findIndex(p => 
+                                p.RESPONSAVEL_PELO_CARTAO === pedido.RESPONSAVEL_PELO_CARTAO && 
+                                p.DATA_ENVIO1 === pedido.DATA_ENVIO1
+                            );
+                            if (indexReal !== -1) {
+                                dadosReais[indexReal].DEPOSITADO = 'DEPOSITADO';
+                            }
+                        });
+                        totalPedidos += grupo.pedidos.length;
+                    }
+                });
+                
+                showNotification(`${totalPedidos} pedido(s) marcado(s) localmente (servidor offline)`, 'success');
+                
+                document.getElementById('selectAll').checked = false;
+                updateBulkActions();
+                aplicarFiltros();
+            }
+        }
+
+        async function atualizarDepositado(pedido, index) {
+            // Simular atualização no banco - aqui você implementaria a API PUT/PATCH
+            console.log('Atualizando depositado para:', pedido);
+            
+            // Atualizar localmente
+            dadosFiltrados[index].DEPOSITADO = 'DEPOSITADO';
+            
+            // Rerender
+            renderizarPedidos();
+            atualizarEstatisticas();
+        }
+
+        function atualizarEstatisticas() {
+            const totalCount = dadosFiltrados.length;
+            document.getElementById('totalCount').textContent = totalCount;
+            
+            // Atualizar contador de selecionados
+            const checkboxes = document.querySelectorAll('.payment-checkbox:checked');
+            document.getElementById('selectedCount').textContent = checkboxes.length;
+        }
+
+        function limparCache() {
+            dadosReais = [];
+            dadosFiltrados = [];
+            filtroAtivo = 'todos';
+            
+            // Reset filtros
+            document.getElementById('dataInicio').value = '';
+            document.getElementById('dataFim').value = '';
+            document.querySelectorAll('.status-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelector('[data-status="todos"]').classList.add('active');
+            
+            // Reset seleções
+            document.getElementById('selectAll').checked = false;
+            
+            // Reset estatísticas
+            document.getElementById('totalCount').textContent = '0';
+            document.getElementById('selectedCount').textContent = '0';
+            
+            mostrarMensagemInicial();
+            showNotification('Cache limpo!', 'success');
+        }
+
+        function showNotification(message, type = 'info') {
+            const existingNotification = document.querySelector('.notification');
+            if (existingNotification) {
+                existingNotification.remove();
+            }
+
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = message;
+            
+            Object.assign(notification.style, {
+                position: 'fixed',
+                top: '20px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                backgroundColor: type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6',
+                color: 'white',
+                padding: '1rem 1.5rem',
+                borderRadius: '12px',
+                boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+                zIndex: '9999',
+                fontSize: '0.9rem',
+                fontWeight: '500',
+                maxWidth: '90vw',
+                textAlign: 'center',
+                animation: 'slideDown 0.3s ease-out'
+            });
+
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.style.animation = 'slideUp 0.3s ease-out';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.remove();
+                    }
+                }, 300);
+            }, 4000);
+        }
+    </script>
+</body>
+</html>

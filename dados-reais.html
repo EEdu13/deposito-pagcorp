@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DADOS REAIS - Tabela PEDIDOS</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .controls {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 18px;
+            margin: 0 10px;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        
+        th {
+            background-color: #4CAF50;
+            color: white;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        
+        tr:hover {
+            background-color: #e8f5e8;
+        }
+        
+        .error {
+            color: #d32f2f;
+            background-color: #ffebee;
+            padding: 15px;
+            border-radius: 4px;
+            border-left: 4px solid #d32f2f;
+            margin-bottom: 20px;
+        }
+        
+        .success {
+            color: #2e7d32;
+            background-color: #e8f5e9;
+            padding: 15px;
+            border-radius: 4px;
+            border-left: 4px solid #2e7d32;
+            margin-bottom: 20px;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 40px;
+            font-size: 18px;
+        }
+        
+        #tableContainer {
+            overflow-x: auto;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .stat-card {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            border-left: 4px solid #4CAF50;
+            margin: 10px;
+            flex: 1;
+            min-width: 150px;
+        }
+        
+        .stat-number {
+            font-size: 28px;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 DADOS REAIS - Tabela PEDIDOS</h1>
+        
+        <div class="controls">
+            <button onclick="carregarDadosReais()">📊 CARREGAR DADOS REAIS</button>
+            <button onclick="atualizarDados()">🔄 ATUALIZAR</button>
+        </div>
+        
+        <div id="statsContainer"></div>
+        <div id="messageArea"></div>
+        <div id="tableContainer"></div>
+    </div>
+
+    <script>
+        let dadosAtuais = [];
+
+        function mostrarMensagem(mensagem, tipo = 'success') {
+            const messageArea = document.getElementById('messageArea');
+            messageArea.innerHTML = `<div class="${tipo}">${mensagem}</div>`;
+        }
+
+        function mostrarCarregando() {
+            const tableContainer = document.getElementById('tableContainer');
+            tableContainer.innerHTML = '<div class="loading">🔄 Carregando dados REAIS da tabela PEDIDOS...</div>';
+        }
+
+        function criarEstatisticas(dados) {
+            if (!dados || dados.length === 0) {
+                document.getElementById('statsContainer').innerHTML = '';
+                return;
+            }
+
+            const totalRegistros = dados.length;
+            const colunas = Object.keys(dados[0]);
+            
+            const statsHTML = `
+                <div class="stats">
+                    <div class="stat-card">
+                        <div class="stat-number">${totalRegistros}</div>
+                        <div class="stat-label">Total de Registros</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${colunas.length}</div>
+                        <div class="stat-label">Total de Colunas</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">✅</div>
+                        <div class="stat-label">Dados Reais</div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('statsContainer').innerHTML = statsHTML;
+        }
+
+        async function carregarDadosReais() {
+            console.log('🚀 Iniciando carregamento de dados REAIS...');
+            
+            mostrarCarregando();
+            mostrarMensagem('🔌 Conectando ao SQL Server Azure...', 'success');
+
+            try {
+                console.log('📡 Fazendo requisição para http://localhost:3002/api/pedidos');
+                
+                const response = await fetch('http://localhost:3002/api/pedidos');
+                console.log('📡 Resposta recebida:', response);
+                
+                if (!response.ok) {
+                    throw new Error(`Erro HTTP: ${response.status} - ${response.statusText}`);
+                }
+                
+                const dados = await response.json();
+                console.log('✅ Dados recebidos:', dados);
+
+                if (dados.success && dados.data) {
+                    dadosAtuais = dados.data;
+                    console.log(`📊 Total de registros: ${dadosAtuais.length}`);
+                    
+                    criarTabela(dadosAtuais);
+                    criarEstatisticas(dadosAtuais);
+                    mostrarMensagem(`🎉 SUCESSO! ${dadosAtuais.length} registros REAIS carregados da tabela PEDIDOS!`, 'success');
+                } else {
+                    throw new Error(dados.message || 'Erro desconhecido');
+                }
+
+            } catch (error) {
+                console.error('❌ Erro:', error);
+                mostrarMensagem(`❌ ERRO: ${error.message}<br><br>🔧 Verifique se o servidor está rodando em: <strong>http://localhost:3002</strong>`, 'error');
+                document.getElementById('tableContainer').innerHTML = '';
+                document.getElementById('statsContainer').innerHTML = '';
+            }
+        }
+
+        function atualizarDados() {
+            carregarDadosReais();
+        }
+
+        function criarTabela(dados) {
+            if (!dados || dados.length === 0) {
+                document.getElementById('tableContainer').innerHTML = '<div class="loading">❌ Nenhum dado encontrado</div>';
+                return;
+            }
+
+            const colunas = Object.keys(dados[0]);
+            let tabelaHTML = '<table><thead><tr>';
+            
+            colunas.forEach(coluna => {
+                tabelaHTML += `<th>${coluna}</th>`;
+            });
+            
+            tabelaHTML += '</tr></thead><tbody>';
+
+            dados.forEach((linha, index) => {
+                tabelaHTML += '<tr>';
+                colunas.forEach(coluna => {
+                    let valor = linha[coluna];
+                    
+                    if (valor === null || valor === undefined) {
+                        valor = '<em>NULL</em>';
+                    } else if (typeof valor === 'string' && valor.includes('T') && valor.includes(':')) {
+                        try {
+                            const data = new Date(valor);
+                            if (!isNaN(data.getTime())) {
+                                valor = data.toLocaleString('pt-BR');
+                            }
+                        } catch (e) {
+                            // Manter valor original
+                        }
+                    } else if (typeof valor === 'number' && coluna.toLowerCase().includes('valor')) {
+                        valor = `R$ ${valor.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+                    }
+                    
+                    tabelaHTML += `<td>${valor}</td>`;
+                });
+                tabelaHTML += '</tr>';
+            });
+
+            tabelaHTML += '</tbody></table>';
+            
+            document.getElementById('tableContainer').innerHTML = tabelaHTML;
+        }
+
+        // Carregar dados automaticamente ao abrir a página
+        window.addEventListener('load', function() {
+            mostrarMensagem('🎯 Página carregada! Clique em "CARREGAR DADOS REAIS" para ver sua tabela PEDIDOS.', 'success');
+        });
+    </script>
+</body>
+</html>
