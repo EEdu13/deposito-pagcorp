@@ -118,10 +118,13 @@ def get_pedidos():
 @app.route('/api/pedidos/depositar', methods=['POST'])
 def depositar_pedidos():
     """API para atualizar status de depositado"""
-    print("💰 Processando depósito de pedidos...")
+    print("💰 RECEBIDA REQUISIÇÃO DE DEPÓSITO!")
+    print(f"📥 Headers: {dict(request.headers)}")
+    print(f"📄 Content-Type: {request.content_type}")
     
     try:
         data = request.get_json()
+        print(f"📊 Dados recebidos: {data}")
         
         if not data:
             return jsonify({
