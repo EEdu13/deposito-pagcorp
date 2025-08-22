@@ -30,9 +30,13 @@
                 notificationPermission = permission === 'granted';
                 
                 if (notificationPermission) {
-                    showNotification('✅ Notificações ativadas! Você será avisado sobre novos pedidos.', 'success');
-                    // Iniciar monitoramento a cada 30 segundos
-                    startPedidosMonitoring();
+                    showNotification('✅ Notificações ativadas! Monitoramento iniciado automaticamente.', 'success');
+                    // Ativar monitoramento automaticamente
+                    setTimeout(() => {
+                        if (!monitoringActive) {
+                            toggleMonitoring();
+                        }
+                    }, 2000);
                 } else {
                     showNotification('⚠️ Permissão de notificação negada. Ative nas configurações do navegador.', 'info');
                 }
@@ -615,7 +619,7 @@
                 DEPÓSITO DE SALDO PAGCORP
             </h1>
             <div class="header-actions">
-                <button class="header-btn" onclick="toggleMonitoring()" id="monitoringBtn">🔔 Push OFF</button>
+                <button class="header-btn" onclick="toggleMonitoring()" id="monitoringBtn">🔔 Ativando...</button>
                 <button class="header-btn" onclick="testPushNotification()">🧪 Teste Push</button>
                 <button class="header-btn" onclick="limparCache()">Limpar Cache</button>
                 <button class="header-btn" onclick="atualizarDados()">Atualizar</button>
@@ -677,6 +681,13 @@
             document.getElementById('dataFim').value = hoje;
             
             mostrarMensagemInicial();
+            
+            // Tentar ativar monitoramento automaticamente após 3 segundos
+            setTimeout(() => {
+                if (notificationPermission && !monitoringActive) {
+                    toggleMonitoring();
+                }
+            }, 3000);
         });
 
         function toggleMonitoring() {
@@ -684,6 +695,7 @@
             
             if (!monitoringActive) {
                 if (!notificationPermission) {
+                    showNotification('❌ Permissão de notificação necessária!', 'error');
                     requestNotificationPermission();
                     return;
                 }
@@ -692,13 +704,15 @@
                 monitoringActive = true;
                 btn.textContent = '🔔 Push ON';
                 btn.style.background = 'rgba(16, 185, 129, 0.3)';
-                showNotification('🔔 Monitoramento de pedidos ATIVADO', 'success');
+                btn.style.color = 'white';
+                showNotification('🔔 Monitoramento AUTOMÁTICO ativado! Verificando a cada 30s', 'success');
             } else {
                 stopPedidosMonitoring();
                 monitoringActive = false;
                 btn.textContent = '🔔 Push OFF';
                 btn.style.background = 'rgba(255,255,255,0.2)';
-                showNotification('🔔 Monitoramento de pedidos DESATIVADO', 'info');
+                btn.style.color = 'white';
+                showNotification('🔔 Monitoramento automático desativado', 'info');
             }
         }
         
