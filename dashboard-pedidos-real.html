@@ -91,7 +91,7 @@
                     return;
                 }
                 
-                // Verificar pedidos criados/aprovados nos últimos 60 segundos
+                // Verificar pedidos criados/aprovados nas últimas 2 horas (para detectar pedidos recentes)
                 const recentPedidos = pedidosNovos.filter(pedido => {
                     if (!pedido.DATA_ENVIO1) return false;
                     
@@ -99,13 +99,19 @@
                     const now = Date.now();
                     const timeDiff = now - pedidoTime;
                     
-                    // Pedidos dos últimos 5 minutos (para teste)
-                    return timeDiff <= 5 * 60 * 1000;
+                    // Pedidos das últimas 2 horas
+                    return timeDiff <= 2 * 60 * 60 * 1000;
+                });
+                
+                // Se há pedidos recentes, verificar se são "novos" desde a última verificação
+                const novosDesdeUltimaVerificacao = recentPedidos.filter(pedido => {
+                    const pedidoTime = new Date(pedido.DATA_ENVIO1).getTime();
+                    return pedidoTime > (lastCheckTimestamp - 60000); // 1 minuto de margem
                 });
                 
                 // Agrupar por responsável e enviar notificações
                 const grupos = {};
-                recentPedidos.forEach(pedido => {
+                novosDesdeUltimaVerificacao.forEach(pedido => {
                     const responsavel = pedido.RESPONSAVEL_PELO_CARTAO || 'Responsável não informado';
                     if (!grupos[responsavel]) {
                         grupos[responsavel] = {
@@ -610,6 +616,7 @@
             </h1>
             <div class="header-actions">
                 <button class="header-btn" onclick="toggleMonitoring()" id="monitoringBtn">🔔 Push OFF</button>
+                <button class="header-btn" onclick="testPushNotification()">🧪 Teste Push</button>
                 <button class="header-btn" onclick="limparCache()">Limpar Cache</button>
                 <button class="header-btn" onclick="atualizarDados()">Atualizar</button>
             </div>
@@ -692,6 +699,83 @@
                 btn.textContent = '🔔 Push OFF';
                 btn.style.background = 'rgba(255,255,255,0.2)';
                 showNotification('🔔 Monitoramento de pedidos DESATIVADO', 'info');
+            }
+        }
+        
+        function testPushNotification() {
+            if (!notificationPermission) {
+                showNotification('❌ Permissão de notificação necessária!', 'error');
+                requestNotificationPermission();
+                return;
+            }
+            
+            // Se há dados carregados, usar dados reais
+            if (dadosFiltrados && dadosFiltrados.length > 0) {
+                checkForNewPedidosManual();
+            } else {
+                // Senão, enviar push de teste
+                const testGroup = {
+                    responsavel: 'RONALDO APARECIDO DE BARROS',
+                    total: 1380.00,
+                    quantidade: 1
+                };
+                
+                sendPushNotification(testGroup);
+                showNotification('🧪 Push de teste enviado!', 'success');
+            }
+        }
+        
+        async function checkForNewPedidosManual() {
+            if (!notificationPermission) return;
+            
+            try {
+                const apiUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+                    ? 'http://localhost:5000/api/pedidos'
+                    : '/api/pedidos';
+                
+                const response = await fetch(apiUrl);
+                if (!response.ok) return;
+                
+                const resultado = await response.json();
+                if (!resultado.success || !resultado.data) return;
+                
+                // Filtrar TODOS os pedidos aprovados sem fechamento
+                const pedidosAprovados = resultado.data.filter(pedido => 
+                    pedido.FECHAMENTO !== 'SIM' && 
+                    pedido.FECHAMENTO !== 'Sim' && 
+                    pedido.FECHAMENTO !== 'sim' &&
+                    pedido.APROVADO_POR && 
+                    pedido.APROVADO_POR.trim() !== '' &&
+                    pedido.DEPOSITADO !== 'DEPOSITADO'
+                );
+                
+                // Agrupar por responsável
+                const grupos = {};
+                pedidosAprovados.forEach(pedido => {
+                    const responsavel = pedido.RESPONSAVEL_PELO_CARTAO || 'Responsável não informado';
+                    if (!grupos[responsavel]) {
+                        grupos[responsavel] = {
+                            responsavel,
+                            total: 0,
+                            quantidade: 0
+                        };
+                    }
+                    grupos[responsavel].total += parseFloat(pedido.TOTAL_PAGAR) || 0;
+                    grupos[responsavel].quantidade++;
+                });
+                
+                // Enviar uma notificação para cada grupo
+                Object.values(grupos).slice(0, 3).forEach(grupo => { // Máximo 3 para não spammar
+                    setTimeout(() => {
+                        sendPushNotification(grupo);
+                    }, Math.random() * 2000); // Delay aleatório
+                });
+                
+                showNotification(`📱 ${Object.keys(grupos).length} notificações enviadas!`, 'success');
+                
+            } catch (error) {
+                console.error('Erro ao verificar pedidos:', error);
+                showNotification('❌ Erro ao buscar pedidos', 'error');
             }
         }
 
