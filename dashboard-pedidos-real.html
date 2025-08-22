@@ -784,16 +784,6 @@
                 // Preparar dados para envio
                 const pedidosParaDepositar = grupo.pedidos.map(pedido => ({
                     RESPONSAVEL_PELO_CARTAO: pedido.RESPONSAVEL_PELO_CARTAO,
-                    DATA_ENVIO1: pedido.DATA_ENVIO1,
-                    PAGCORP: pedido.PAGCORP || pedido.PAGCGORP,
-                    PAGCGORP: pedido.PAGCGORP,
-                    TOTAL_PAGAR: pedido.TOTAL_PAGAR,
-                    TIPO_REFEICAO: pedido.TIPO_REFEICAO
-                }));
-                
-                // Detectar se está rodando localmente
-                const pedidosParaDepositar = grupo.pedidos.map(pedido => ({
-                    RESPONSAVEL_PELO_CARTAO: pedido.RESPONSAVEL_PELO_CARTAO,
                     PAGCORP: pedido.PAGCORP,
                     TOTAL_PAGAR: pedido.TOTAL_PAGAR
                 }));
@@ -872,11 +862,8 @@
                         grupo.pedidos.forEach(pedido => {
                             todosPedidosParaDepositar.push({
                                 RESPONSAVEL_PELO_CARTAO: pedido.RESPONSAVEL_PELO_CARTAO,
-                                DATA_ENVIO1: pedido.DATA_ENVIO1,
-                                PAGCORP: pedido.PAGCORP || pedido.PAGCGORP,
-                                PAGCGORP: pedido.PAGCGORP,
-                                TOTAL_PAGAR: pedido.TOTAL_PAGAR,
-                                TIPO_REFEICAO: pedido.TIPO_REFEICAO
+                                PAGCORP: pedido.PAGCORP,
+                                TOTAL_PAGAR: pedido.TOTAL_PAGAR
                             });
                         });
                     }
