@@ -12,6 +12,161 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="PAGCORP">
     
+    <!-- Push Notifications Support -->
+    <script>
+        // Configuração de notificações push
+        let notificationPermission = false;
+        let lastCheckTimestamp = null;
+        let monitoringInterval = null;
+        
+        // Solicitar permissão para notificações ao carregar
+        document.addEventListener('DOMContentLoaded', function() {
+            requestNotificationPermission();
+        });
+        
+        async function requestNotificationPermission() {
+            if ('Notification' in window) {
+                const permission = await Notification.requestPermission();
+                notificationPermission = permission === 'granted';
+                
+                if (notificationPermission) {
+                    showNotification('✅ Notificações ativadas! Você será avisado sobre novos pedidos.', 'success');
+                    // Iniciar monitoramento a cada 30 segundos
+                    startPedidosMonitoring();
+                } else {
+                    showNotification('⚠️ Permissão de notificação negada. Ative nas configurações do navegador.', 'info');
+                }
+            }
+        }
+        
+        function startPedidosMonitoring() {
+            if (monitoringInterval) {
+                clearInterval(monitoringInterval);
+            }
+            
+            // Verificar novos pedidos a cada 30 segundos
+            monitoringInterval = setInterval(async () => {
+                await checkForNewPedidos();
+            }, 30000); // 30 segundos
+            
+            console.log('🔔 Monitoramento de pedidos iniciado (30s)');
+        }
+        
+        function stopPedidosMonitoring() {
+            if (monitoringInterval) {
+                clearInterval(monitoringInterval);
+                monitoringInterval = null;
+                console.log('🔔 Monitoramento de pedidos parado');
+            }
+        }
+        
+        async function checkForNewPedidos() {
+            if (!notificationPermission) return;
+            
+            try {
+                // Buscar dados da API
+                const apiUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+                    ? 'http://localhost:5000/api/pedidos'
+                    : '/api/pedidos';
+                
+                const response = await fetch(apiUrl);
+                if (!response.ok) return;
+                
+                const resultado = await response.json();
+                if (!resultado.success || !resultado.data) return;
+                
+                // Filtrar pedidos sem fechamento e aprovados
+                const pedidosNovos = resultado.data.filter(pedido => 
+                    pedido.FECHAMENTO !== 'SIM' && 
+                    pedido.FECHAMENTO !== 'Sim' && 
+                    pedido.FECHAMENTO !== 'sim' &&
+                    pedido.APROVADO_POR && 
+                    pedido.APROVADO_POR.trim() !== '' &&
+                    pedido.DEPOSITADO !== 'DEPOSITADO'
+                );
+                
+                // Se é a primeira verificação, apenas salvar o timestamp
+                if (!lastCheckTimestamp) {
+                    lastCheckTimestamp = Date.now();
+                    return;
+                }
+                
+                // Verificar pedidos criados/aprovados nos últimos 60 segundos
+                const recentPedidos = pedidosNovos.filter(pedido => {
+                    if (!pedido.DATA_ENVIO1) return false;
+                    
+                    const pedidoTime = new Date(pedido.DATA_ENVIO1).getTime();
+                    const now = Date.now();
+                    const timeDiff = now - pedidoTime;
+                    
+                    // Pedidos dos últimos 5 minutos (para teste)
+                    return timeDiff <= 5 * 60 * 1000;
+                });
+                
+                // Agrupar por responsável e enviar notificações
+                const grupos = {};
+                recentPedidos.forEach(pedido => {
+                    const responsavel = pedido.RESPONSAVEL_PELO_CARTAO || 'Responsável não informado';
+                    if (!grupos[responsavel]) {
+                        grupos[responsavel] = {
+                            responsavel,
+                            total: 0,
+                            quantidade: 0
+                        };
+                    }
+                    grupos[responsavel].total += parseFloat(pedido.TOTAL_PAGAR) || 0;
+                    grupos[responsavel].quantidade++;
+                });
+                
+                // Enviar notificação para cada responsável
+                Object.values(grupos).forEach(grupo => {
+                    sendPushNotification(grupo);
+                });
+                
+                lastCheckTimestamp = Date.now();
+                
+            } catch (error) {
+                console.error('Erro ao verificar novos pedidos:', error);
+            }
+        }
+        
+        function sendPushNotification(grupo) {
+            const { responsavel, total, quantidade } = grupo;
+            
+            const titulo = `💳 Novo Pedido PAGCORP`;
+            const quantidadeText = quantidade > 1 ? `${quantidade} pedidos` : 'pedido';
+            const mensagem = `Olá, ${responsavel} solicitou R$ ${total.toLocaleString('pt-BR', {minimumFractionDigits: 2})} (${quantidadeText}) e já foi aprovado.`;
+            
+            // Criar notificação do navegador
+            if (notificationPermission) {
+                const notification = new Notification(titulo, {
+                    body: mensagem,
+                    icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="%232563eb"/><text x="50" y="60" font-family="Arial,sans-serif" font-size="35" fill="white" text-anchor="middle" font-weight="bold">💳</text></svg>',
+                    badge: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="%232563eb"/><text x="50" y="60" font-family="Arial,sans-serif" font-size="35" fill="white" text-anchor="middle" font-weight="bold">💳</text></svg>',
+                    tag: `pedido-${responsavel}`,
+                    requireInteraction: true,
+                    timestamp: Date.now()
+                });
+                
+                // Auto-fechar após 10 segundos
+                setTimeout(() => {
+                    notification.close();
+                }, 10000);
+                
+                // Click para abrir a aplicação
+                notification.onclick = function() {
+                    window.focus();
+                    notification.close();
+                };
+            }
+            
+            // Também mostrar notificação interna
+            showNotification(mensagem, 'info');
+            
+            console.log(`🔔 Push enviado: ${mensagem}`);
+        }
+    </script>
+    
     <style>
         * {
             margin: 0;
@@ -454,6 +609,7 @@
                 DEPÓSITO DE SALDO PAGCORP
             </h1>
             <div class="header-actions">
+                <button class="header-btn" onclick="toggleMonitoring()" id="monitoringBtn">🔔 Push OFF</button>
                 <button class="header-btn" onclick="limparCache()">Limpar Cache</button>
                 <button class="header-btn" onclick="atualizarDados()">Atualizar</button>
             </div>
@@ -504,6 +660,7 @@
         let dadosReais = [];
         let dadosFiltrados = [];
         let filtroAtivo = 'todos';
+        let monitoringActive = false;
 
         // Inicialização
         document.addEventListener('DOMContentLoaded', function() {
@@ -514,6 +671,29 @@
             
             mostrarMensagemInicial();
         });
+
+        function toggleMonitoring() {
+            const btn = document.getElementById('monitoringBtn');
+            
+            if (!monitoringActive) {
+                if (!notificationPermission) {
+                    requestNotificationPermission();
+                    return;
+                }
+                
+                startPedidosMonitoring();
+                monitoringActive = true;
+                btn.textContent = '🔔 Push ON';
+                btn.style.background = 'rgba(16, 185, 129, 0.3)';
+                showNotification('🔔 Monitoramento de pedidos ATIVADO', 'success');
+            } else {
+                stopPedidosMonitoring();
+                monitoringActive = false;
+                btn.textContent = '🔔 Push OFF';
+                btn.style.background = 'rgba(255,255,255,0.2)';
+                showNotification('🔔 Monitoramento de pedidos DESATIVADO', 'info');
+            }
+        }
 
         function mostrarMensagemInicial() {
             const container = document.getElementById('paymentsContainer');
