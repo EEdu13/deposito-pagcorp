@@ -792,31 +792,11 @@
                 }));
                 
                 // Detectar se está rodando localmente
-                const isLocal = window.location.hostname === 'localhost' || 
-                               window.location.hostname === '127.0.0.1' || 
-                               window.location.hostname === '0.0.0.0';
-                
-                if (!isLocal) {
-                    // Em produção, simular o depósito localmente
-                    grupo.pedidos.forEach(pedido => {
-                        const indexOriginal = dadosFiltrados.findIndex(p => p === pedido);
-                        if (indexOriginal !== -1) {
-                            dadosFiltrados[indexOriginal].DEPOSITADO = 'DEPOSITADO';
-                        }
-                        
-                        const indexReal = dadosReais.findIndex(p => 
-                            p.RESPONSAVEL_PELO_CARTAO === pedido.RESPONSAVEL_PELO_CARTAO && 
-                            p.DATA_ENVIO1 === pedido.DATA_ENVIO1
-                        );
-                        if (indexReal !== -1) {
-                            dadosReais[indexReal].DEPOSITADO = 'DEPOSITADO';
-                        }
-                    });
-                    
-                    showNotification(`${grupo.pedidos.length} pedido(s) marcado(s) como depositado(s)!`, 'success');
-                    aplicarFiltros();
-                    return;
-                }
+                const pedidosParaDepositar = grupo.pedidos.map(pedido => ({
+                    RESPONSAVEL_PELO_CARTAO: pedido.RESPONSAVEL_PELO_CARTAO,
+                    PAGCORP: pedido.PAGCORP,
+                    TOTAL_PAGAR: pedido.TOTAL_PAGAR
+                }));
                 
                 // Fazer requisição para o servidor
                 const apiUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
@@ -904,43 +884,6 @@
                 
                 if (todosPedidosParaDepositar.length === 0) {
                     showNotification('Nenhum pedido selecionado para depositar', 'error');
-                    return;
-                }
-                
-                // Detectar se está rodando localmente
-                const isLocal = window.location.hostname === 'localhost' || 
-                               window.location.hostname === '127.0.0.1' || 
-                               window.location.hostname === '0.0.0.0';
-                
-                if (!isLocal) {
-                    // Em produção, simular o depósito localmente
-                    checkboxes.forEach(checkbox => {
-                        const groupIndex = parseInt(checkbox.dataset.groupIndex);
-                        const grupo = grupos[groupIndex];
-                        
-                        if (grupo) {
-                            grupo.pedidos.forEach(pedido => {
-                                const indexFiltrado = dadosFiltrados.findIndex(p => p === pedido);
-                                if (indexFiltrado !== -1) {
-                                    dadosFiltrados[indexFiltrado].DEPOSITADO = 'DEPOSITADO';
-                                }
-                                
-                                const indexReal = dadosReais.findIndex(p => 
-                                    p.RESPONSAVEL_PELO_CARTAO === pedido.RESPONSAVEL_PELO_CARTAO && 
-                                    p.DATA_ENVIO1 === pedido.DATA_ENVIO1
-                                );
-                                if (indexReal !== -1) {
-                                    dadosReais[indexReal].DEPOSITADO = 'DEPOSITADO';
-                                }
-                            });
-                        }
-                    });
-                    
-                    showNotification(`${todosPedidosParaDepositar.length} pedido(s) marcado(s) como depositado(s)!`, 'success');
-                    
-                    document.getElementById('selectAll').checked = false;
-                    updateBulkActions();
-                    aplicarFiltros();
                     return;
                 }
                 
