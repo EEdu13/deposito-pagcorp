@@ -48,12 +48,12 @@
                 clearInterval(monitoringInterval);
             }
             
-            // Verificar novos pedidos a cada 30 segundos
+            // Verificar novos pedidos a cada 10 segundos
             monitoringInterval = setInterval(async () => {
                 await checkForNewPedidos();
-            }, 30000); // 30 segundos
+            }, 10000); // 10 segundos
             
-            console.log('🔔 Monitoramento de pedidos iniciado (30s)');
+            console.log('🔔 Monitoramento de pedidos iniciado (10s)');
         }
         
         function stopPedidosMonitoring() {
@@ -68,17 +68,29 @@
             if (!notificationPermission) return;
             
             try {
+                console.log('🔍 Verificando novos pedidos...');
+                
                 // Buscar dados da API
                 const apiUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
                     ? 'http://localhost:5000/api/pedidos'
                     : '/api/pedidos';
-                
+
                 const response = await fetch(apiUrl);
-                if (!response.ok) return;
-                
+                if (!response.ok) {
+                    console.log('❌ Erro na resposta da API:', response.status);
+                    return;
+                }
+
                 const resultado = await response.json();
-                if (!resultado.success || !resultado.data) return;
+                console.log('📊 Dados recebidos da API:', resultado);
                 
+                if (!resultado.success || !resultado.data) {
+                    console.log('❌ Estrutura de dados inválida');
+                    return;
+                }
+
+                console.log('📈 Total de pedidos:', resultado.data.length);
+
                 // Filtrar pedidos sem fechamento e aprovados
                 const pedidosNovos = resultado.data.filter(pedido => 
                     pedido.FECHAMENTO !== 'SIM' && 
@@ -89,13 +101,28 @@
                     pedido.DEPOSITADO !== 'DEPOSITADO'
                 );
                 
+                console.log('✅ Pedidos válidos (aprovados e não fechados):', pedidosNovos.length);
+                
+                // Log de alguns pedidos para debug
+                if (pedidosNovos.length > 0) {
+                    console.log('🔍 Exemplo de pedido:', pedidosNovos[0]);
+                    console.log('🔍 Campos importantes:', {
+                        DATA_ENVIO1: pedidosNovos[0].DATA_ENVIO1,
+                        FECHAMENTO: pedidosNovos[0].FECHAMENTO,
+                        APROVADO_POR: pedidosNovos[0].APROVADO_POR,
+                        DEPOSITADO: pedidosNovos[0].DEPOSITADO,
+                        RESPONSAVEL_PELO_CARTAO: pedidosNovos[0].RESPONSAVEL_PELO_CARTAO
+                    });
+                }
+
                 // Se é a primeira verificação, apenas salvar o timestamp
                 if (!lastCheckTimestamp) {
                     lastCheckTimestamp = Date.now();
+                    console.log('⏰ Primeira verificação - salvando timestamp:', new Date(lastCheckTimestamp));
                     return;
                 }
-                
-                // Verificar pedidos criados/aprovados nas últimas 2 horas (para detectar pedidos recentes)
+
+                // Verificar pedidos criados/aprovados nas últimas 30 minutos (para detectar pedidos recentes)
                 const recentPedidos = pedidosNovos.filter(pedido => {
                     if (!pedido.DATA_ENVIO1) return false;
                     
@@ -103,16 +130,26 @@
                     const now = Date.now();
                     const timeDiff = now - pedidoTime;
                     
-                    // Pedidos das últimas 2 horas
-                    return timeDiff <= 2 * 60 * 60 * 1000;
+                    // Pedidos das últimas 30 minutos
+                    return timeDiff <= 30 * 60 * 1000;
                 });
                 
+                console.log('🕐 Pedidos das últimas 30 min:', recentPedidos.length);
+
                 // Se há pedidos recentes, verificar se são "novos" desde a última verificação
                 const novosDesdeUltimaVerificacao = recentPedidos.filter(pedido => {
                     const pedidoTime = new Date(pedido.DATA_ENVIO1).getTime();
-                    return pedidoTime > (lastCheckTimestamp - 60000); // 1 minuto de margem
+                    const lastCheck = lastCheckTimestamp - 2 * 60000; // 2 minutos de margem
+                    console.log('⏰ Comparando:', {
+                        pedidoTime: new Date(pedidoTime),
+                        lastCheck: new Date(lastCheck),
+                        isNewer: pedidoTime > lastCheck
+                    });
+                    return pedidoTime > lastCheck;
                 });
                 
+                console.log('🆕 Pedidos novos desde última verificação:', novosDesdeUltimaVerificacao.length);
+
                 // Agrupar por responsável e enviar notificações
                 const grupos = {};
                 novosDesdeUltimaVerificacao.forEach(pedido => {
@@ -127,16 +164,20 @@
                     grupos[responsavel].total += parseFloat(pedido.TOTAL_PAGAR) || 0;
                     grupos[responsavel].quantidade++;
                 });
-                
+
+                console.log('👥 Grupos para notificação:', grupos);
+
                 // Enviar notificação para cada responsável
                 Object.values(grupos).forEach(grupo => {
+                    console.log('🔔 Enviando notificação para:', grupo);
                     sendPushNotification(grupo);
                 });
-                
+
                 lastCheckTimestamp = Date.now();
-                
+                console.log('⏰ Timestamp atualizado:', new Date(lastCheckTimestamp));
+
             } catch (error) {
-                console.error('Erro ao verificar novos pedidos:', error);
+                console.error('❌ Erro ao verificar novos pedidos:', error);
             }
         }
         
@@ -705,7 +746,7 @@
                 btn.textContent = '🔔 Push ON';
                 btn.style.background = 'rgba(16, 185, 129, 0.3)';
                 btn.style.color = 'white';
-                showNotification('🔔 Monitoramento AUTOMÁTICO ativado! Verificando a cada 30s', 'success');
+                showNotification('🔔 Monitoramento AUTOMÁTICO ativado! Verificando a cada 10s', 'success');
             } else {
                 stopPedidosMonitoring();
                 monitoringActive = false;

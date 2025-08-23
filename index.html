@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dados da Tabela PEDIDOS</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .controls {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        
+        th {
+            background-color: #4CAF50;
+            color: white;
+            font-weight: bold;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        
+        tr:hover {
+            background-color: #e8f5e8;
+        }
+        
+        .error {
+            color: #d32f2f;
+            background-color: #ffebee;
+            padding: 15px;
+            border-radius: 4px;
+            border-left: 4px solid #d32f2f;
+            margin-bottom: 20px;
+        }
+        
+        .info {
+            color: #1976d2;
+            background-color: #e3f2fd;
+            padding: 15px;
+            border-radius: 4px;
+            border-left: 4px solid #1976d2;
+            margin-bottom: 20px;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 40px;
+        }
+        
+        .no-data {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 40px;
+        }
+        
+        #tableContainer {
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Dados da Tabela PEDIDOS</h1>
+        
+        <div class="controls">
+            <button id="loadDataBtn" onclick="loadData()">Carregar Dados</button>
+        </div>
+        
+        <div id="messageArea"></div>
+        <div id="tableContainer"></div>
+    </div>
+
+    <script>
+        // Configurações de conexão
+        const config = {
+            server: 'alrflorestal.database.windows.net',
+            database: 'Tabela_teste',
+            user: 'sqladmin',
+            password: 'SenhaForte123!',
+            driver: 'ODBC Driver 17 for SQL Server'
+        };
+
+        function showMessage(message, type = 'info') {
+            const messageArea = document.getElementById('messageArea');
+            messageArea.innerHTML = `<div class="${type}">${message}</div>`;
+        }
+
+        function showLoading() {
+            const tableContainer = document.getElementById('tableContainer');
+            tableContainer.innerHTML = '<div class="loading">Carregando dados...</div>';
+        }
+
+        async function loadData() {
+            const button = document.getElementById('loadDataBtn');
+            button.disabled = true;
+            button.textContent = 'Carregando...';
+            
+            showLoading();
+            showMessage('Tentando conectar ao banco de dados...', 'info');
+
+            try {
+                // Como JavaScript no frontend não pode conectar diretamente ao SQL Server,
+                // mostramos as informações de conexão e orientações
+                showMessage(`
+                    <strong>Informações de Conexão:</strong><br>
+                    Servidor: ${config.server}<br>
+                    Banco: ${config.database}<br>
+                    Usuário: ${config.user}<br>
+                    Driver: ${config.driver}<br><br>
+                    <strong>Nota:</strong> Para conectar ao SQL Server, você precisa de um backend (PHP, Node.js, etc.) 
+                    ou usar o arquivo index.php que foi criado.
+                `, 'info');
+
+                // Simular estrutura de tabela (você pode substituir pelos dados reais)
+                createSampleTable();
+
+            } catch (error) {
+                showMessage(`<strong>Erro:</strong> ${error.message}`, 'error');
+                document.getElementById('tableContainer').innerHTML = '';
+            } finally {
+                button.disabled = false;
+                button.textContent = 'Carregar Dados';
+            }
+        }
+
+        function createSampleTable() {
+            // Esta é uma estrutura de exemplo - substitua pelos dados reais do seu backend
+            const sampleData = [
+                {
+                    'ID': 1,
+                    'CLIENTE': 'João Silva',
+                    'PRODUTO': 'Produto A',
+                    'QUANTIDADE': 10,
+                    'VALOR': 150.00,
+                    'DATA_PEDIDO': '2025-08-20'
+                },
+                {
+                    'ID': 2,
+                    'CLIENTE': 'Maria Santos',
+                    'PRODUTO': 'Produto B',
+                    'QUANTIDADE': 5,
+                    'VALOR': 75.50,
+                    'DATA_PEDIDO': '2025-08-21'
+                }
+            ];
+
+            if (sampleData.length === 0) {
+                document.getElementById('tableContainer').innerHTML = '<div class="no-data">Nenhum dado encontrado na tabela PEDIDOS</div>';
+                return;
+            }
+
+            // Criar cabeçalho da tabela
+            const columns = Object.keys(sampleData[0]);
+            let tableHTML = '<table><thead><tr>';
+            
+            columns.forEach(column => {
+                tableHTML += `<th>${column}</th>`;
+            });
+            
+            tableHTML += '</tr></thead><tbody>';
+
+            // Adicionar linhas de dados
+            sampleData.forEach(row => {
+                tableHTML += '<tr>';
+                columns.forEach(column => {
+                    let value = row[column];
+                    if (value === null || value === undefined) {
+                        value = '<em>NULL</em>';
+                    }
+                    tableHTML += `<td>${value}</td>`;
+                });
+                tableHTML += '</tr>';
+            });
+
+            tableHTML += '</tbody></table>';
+            
+            document.getElementById('tableContainer').innerHTML = tableHTML;
+            
+            showMessage(`
+                <strong>Tabela carregada com sucesso!</strong><br>
+                Dados de exemplo exibidos. Para dados reais, use o arquivo index.php com um servidor web que suporte PHP.
+            `, 'info');
+        }
+
+        // Carregar dados automaticamente quando a página for carregada
+        window.addEventListener('load', function() {
+            showMessage('Página carregada. Clique em "Carregar Dados" para exibir a tabela.', 'info');
+        });
+    </script>
+</body>
+</html>
