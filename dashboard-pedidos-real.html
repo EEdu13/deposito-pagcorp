@@ -91,6 +91,19 @@
 
                 console.log('📈 Total de pedidos:', resultado.data.length);
 
+                // Log de TODOS os pedidos para debug
+                console.log('🔍 TODOS OS PEDIDOS:');
+                resultado.data.forEach((pedido, index) => {
+                    console.log(`Pedido ${index + 1}:`, {
+                        DATA_ENVIO1: pedido.DATA_ENVIO1,
+                        FECHAMENTO: pedido.FECHAMENTO,
+                        APROVADO_POR: pedido.APROVADO_POR,
+                        DEPOSITADO: pedido.DEPOSITADO,
+                        RESPONSAVEL_PELO_CARTAO: pedido.RESPONSAVEL_PELO_CARTAO,
+                        TOTAL_PAGAR: pedido.TOTAL_PAGAR
+                    });
+                });
+
                 // Filtrar pedidos sem fechamento e aprovados
                 const pedidosNovos = resultado.data.filter(pedido => 
                     pedido.FECHAMENTO !== 'SIM' && 
