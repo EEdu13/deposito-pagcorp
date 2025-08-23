@@ -187,15 +187,17 @@
                     responsavel: p.RESPONSAVEL_PELO_CARTAO,
                     total: p.TOTAL_PAGAR,
                     data: p.DATA_ENVIO1,
-                    aprovado: p.APROVADO_POR
-                }))).slice(0, 100); // Hash simples dos primeiros 100 chars
+                    aprovado: p.APROVADO_POR,
+                    pagcorp: p.PAGCORP // ADICIONADO: incluir PAGCORP para detectar pedidos únicos
+                }))).slice(0, 200); // Aumentado para 200 chars para melhor detecção
 
                 console.log('📊 Comparação de estado:', {
                     currentCount: currentCount,
                     lastPedidosCount: lastPedidosCount,
                     currentHash: currentHash.slice(0, 50) + '...',
                     lastPedidosHash: lastPedidosHash.slice(0, 50) + '...',
-                    hashChanged: currentHash !== lastPedidosHash
+                    hashChanged: currentHash !== lastPedidosHash,
+                    countIncreased: currentCount > lastPedidosCount
                 });
 
                 // Se é a primeira verificação, salvar estado inicial
@@ -263,7 +265,7 @@
                     // MÉTODO 1: Mais pedidos que antes
                     console.log(`🆕 Detectados ${currentCount - lastPedidosCount} novos pedidos por contagem!`);
                     
-                    // Pegar os pedidos mais recentes (assumindo que os novos estão no final)
+                    // Pegar TODOS os pedidos de hoje (incluindo os novos)
                     pedidosNovosDetectados = recentPedidos.filter(pedido => {
                         const pedidoDate = new Date(pedido.DATA_ENVIO1);
                         const pedidoDateUTC = new Date(Date.UTC(
@@ -283,9 +285,13 @@
                         return pedidoDateUTC.getTime() === nowDateUTC.getTime();
                     });
                     
+                    console.log(`📢 Notificando sobre ${pedidosNovosDetectados.length} pedidos de hoje (devido ao aumento de contagem)`);
+                    
                 } else if (currentHash !== lastPedidosHash) {
                     // MÉTODO 2: Hash mudou (pedidos modificados/aprovados)
                     console.log('🔄 Detectada mudança no estado dos pedidos (hash diferente)!');
+                    console.log('🔍 Hash anterior:', lastPedidosHash.slice(0, 100) + '...');
+                    console.log('🔍 Hash atual:', currentHash.slice(0, 100) + '...');
                     
                     // Verificar pedidos de hoje que podem ter sido aprovados recentemente
                     pedidosNovosDetectados = recentPedidos.filter(pedido => {
@@ -303,11 +309,13 @@
                             now.getDate()
                         ));
                         
-                        // Pedidos de hoje que foram aprovados recentemente
+                        // Pedidos de hoje que foram aprovados
                         return pedidoDateUTC.getTime() === nowDateUTC.getTime() && 
                                pedido.APROVADO_POR && 
                                pedido.APROVADO_POR.trim() !== '';
                     });
+                    
+                    console.log(`📢 Notificando sobre ${pedidosNovosDetectados.length} pedidos modificados de hoje`);
                 }
                 
                 console.log('🆕 Pedidos novos detectados:', pedidosNovosDetectados.length);
@@ -830,8 +838,8 @@
             <div class="header-actions">
                 <button class="header-btn" onclick="toggleMonitoring()" id="monitoringBtn">🔔 Ativando...</button>
                 <button class="header-btn" onclick="forceCheck()">🔄 Verificar Agora</button>
+                <button class="header-btn" onclick="forceReset()">🆕 Reset & Verificar</button>
                 <button class="header-btn" onclick="testPushNotification()">🧪 Teste Push</button>
-                <button class="header-btn" onclick="limparCache()">Limpar Cache</button>
                 <button class="header-btn" onclick="atualizarDados()">Atualizar</button>
             </div>
         </header>
@@ -979,6 +987,24 @@
             console.log('🔄 Verificação MANUAL iniciada...');
             showNotification('🔄 Verificando pedidos manualmente...', 'info');
             
+            // NÃO resetar estado - deixar o sistema detectar mudanças naturalmente
+            console.log('🔄 Verificação manual SEM reset - para detectar mudanças reais');
+            
+            checkForNewPedidos().then(() => {
+                console.log('✅ Verificação manual concluída');
+                showNotification('✅ Verificação manual concluída!', 'success');
+            });
+        }
+        
+        function forceReset() {
+            if (!notificationPermission) {
+                showNotification('❌ Permissão de notificação necessária!', 'error');
+                return;
+            }
+            
+            console.log('🆕 RESET FORÇADO iniciado...');
+            showNotification('🆕 Resetando estado e verificando...', 'info');
+            
             // Resetar estado para forçar detecção completa
             const oldState = {
                 lastPedidosCount: lastPedidosCount,
@@ -990,14 +1016,14 @@
             lastPedidosHash = '';
             lastCheckTimestamp = null;
             
-            console.log('🔄 Estado resetado para verificação manual:', {
+            console.log('🔄 Estado resetado FORÇADAMENTE:', {
                 oldState: oldState,
                 newState: { lastPedidosCount, lastPedidosHash, lastCheckTimestamp }
             });
             
             checkForNewPedidos().then(() => {
-                console.log('✅ Verificação manual concluída');
-                showNotification('✅ Verificação manual concluída!', 'success');
+                console.log('✅ Reset e verificação concluídos');
+                showNotification('✅ Reset completo! Todas as notificações enviadas.', 'success');
             });
         }
         
@@ -1144,12 +1170,12 @@
             
             dados.forEach((pedido, indexOriginal) => {
                 const dataEnvio = pedido.DATA_ENVIO1 ? new Date(pedido.DATA_ENVIO1).toDateString() : 'Sem data';
-                const nomeLider = pedido.NOME_LIDER || 'Sem líder';
-                const chave = `${dataEnvio}_${nomeLider}`;
+                const responsavelCartao = pedido.RESPONSAVEL_PELO_CARTAO || 'Sem responsável'; // CORRIGIDO: usar RESPONSAVEL_PELO_CARTAO
+                const chave = `${dataEnvio}_${responsavelCartao}`;
                 
                 if (!grupos[chave]) {
                     grupos[chave] = {
-                        responsavel: nomeLider,
+                        responsavel: responsavelCartao, // CORRIGIDO: usar responsavelCartao
                         dataEnvio: dataEnvio,
                         pedidos: [],
                         totalValue: 0,
@@ -1243,7 +1269,7 @@
                     const valorIndividual = parseFloat(pedido.TOTAL_PAGAR) || 0;
                     const dataEnvio = pedido.DATA_ENVIO1 ? new Date(pedido.DATA_ENVIO1).toLocaleDateString('pt-BR') : 'N/A';
                     const projeto = pedido.PROJETO || 'N/A';
-                    const nomeLider = pedido.NOME_LIDER || 'N/A';
+                    const responsavelCartao = pedido.RESPONSAVEL_PELO_CARTAO || 'N/A'; // CORRIGIDO: usar RESPONSAVEL_PELO_CARTAO
                     const tipoRefeicao = pedido.TIPO_REFEICAO || 'N/A';
 
                     return `
@@ -1261,8 +1287,8 @@
                                 <span class="detail-value">${projeto}</span>
                             </div>
                             <div class="detail-row">
-                                <span class="detail-label">Líder:</span>
-                                <span class="detail-value">${nomeLider}</span>
+                                <span class="detail-label">Responsável:</span>
+                                <span class="detail-value">${responsavelCartao}</span>
                             </div>
                             <div class="detail-row">
                                 <span class="detail-label">Refeição:</span>
