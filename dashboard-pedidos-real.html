@@ -181,89 +181,92 @@
 
                 console.log('🕐 Pedidos das últimas 48h:', recentPedidos.length);
 
-                // NOVA LÓGICA: Detectar novos pedidos por contagem e hash
+                // NOVA LÓGICA: Detectar PEDIDOS NOVOS por DATA/HORA (últimos 15 minutos)
+                const now = new Date();
+                const quinzeMinutosAtras = new Date(now.getTime() - (15 * 60 * 1000)); // 15 minutos atrás
+                
+                // Filtrar pedidos dos ÚLTIMOS 15 MINUTOS (pedidos realmente novos)
+                const pedidosNovissimos = pedidosNovos.filter(pedido => {
+                    if (!pedido.DATA_ENVIO1) return false;
+                    
+                    const pedidoDate = new Date(pedido.DATA_ENVIO1);
+                    const isRecent = pedidoDate >= quinzeMinutosAtras;
+                    
+                    console.log('⏰ Verificando se é pedido novíssimo:', {
+                        responsavel: pedido.RESPONSAVEL_PELO_CARTAO,
+                        dataOriginal: pedido.DATA_ENVIO1,
+                        dateParsed: pedidoDate.toLocaleString(),
+                        quinzeMinutosAtras: quinzeMinutosAtras.toLocaleString(),
+                        isRecent: isRecent,
+                        minutosAtras: Math.round((now - pedidoDate) / (1000 * 60))
+                    });
+                    
+                    return isRecent;
+                });
+                
+                console.log('🆕 Pedidos dos últimos 15 minutos:', pedidosNovissimos.length);
+                
+                // CONTAGEM SIMPLES: Detectar se há mais pedidos que antes
                 const currentCount = pedidosNovos.length;
-                const currentHash = JSON.stringify(pedidosNovos.map(p => ({
-                    responsavel: p.RESPONSAVEL_PELO_CARTAO,
-                    total: p.TOTAL_PAGAR,
-                    data: p.DATA_ENVIO1,
-                    aprovado: p.APROVADO_POR,
-                    pagcorp: p.PAGCORP // ADICIONADO: incluir PAGCORP para detectar pedidos únicos
-                }))).slice(0, 200); // Aumentado para 200 chars para melhor detecção
-
-                console.log('📊 Comparação de estado:', {
+                const currentCountNovissimos = pedidosNovissimos.length;
+                
+                console.log('📊 Análise de PEDIDOS NOVOS:', {
                     currentCount: currentCount,
                     lastPedidosCount: lastPedidosCount,
-                    currentHash: currentHash.slice(0, 50) + '...',
-                    lastPedidosHash: lastPedidosHash.slice(0, 50) + '...',
-                    hashChanged: currentHash !== lastPedidosHash,
-                    countIncreased: currentCount > lastPedidosCount
+                    currentCountNovissimos: currentCountNovissimos,
+                    countIncreased: currentCount > lastPedidosCount,
+                    hasRecentOrders: currentCountNovissimos > 0
                 });
 
                 // Se é a primeira verificação, salvar estado inicial
                 if (lastPedidosCount === 0) {
                     lastPedidosCount = currentCount;
-                    lastPedidosHash = currentHash;
                     lastCheckTimestamp = Date.now();
                     console.log('⏰ Primeira verificação - salvando estado inicial:', {
                         count: currentCount,
                         timestamp: new Date(lastCheckTimestamp)
                     });
                     
-                    // Na primeira vez, verificar pedidos de hoje para notificar
-                    const pedidosDeHoje = recentPedidos.filter(pedido => {
-                        const pedidoDate = new Date(pedido.DATA_ENVIO1);
-                        const pedidoDateUTC = new Date(Date.UTC(
-                            pedidoDate.getUTCFullYear(), 
-                            pedidoDate.getUTCMonth(), 
-                            pedidoDate.getUTCDate()
-                        ));
-                        
-                        const today = new Date();
-                        const todayDateUTC = new Date(Date.UTC(
-                            today.getFullYear(), 
-                            today.getMonth(), 
-                            today.getDate()
-                        ));
-                        
-                        return pedidoDateUTC.getTime() === todayDateUTC.getTime();
-                    });
-                    
-                    console.log('🆕 Pedidos de hoje (primeira verificação):', pedidosDeHoje.length);
-                    
-                    if (pedidosDeHoje.length > 0) {
-                        // Agrupar e notificar pedidos de hoje
-                        const grupos = {};
-                        pedidosDeHoje.forEach(pedido => {
-                            const responsavel = pedido.RESPONSAVEL_PELO_CARTAO || 'Responsável não informado';
-                            if (!grupos[responsavel]) {
-                                grupos[responsavel] = {
-                                    responsavel,
-                                    total: 0,
-                                    quantidade: 0
-                                };
-                            }
-                            grupos[responsavel].total += parseFloat(pedido.TOTAL_PAGAR) || 0;
-                            grupos[responsavel].quantidade++;
-                        });
-                        
-                        console.log('👥 Grupos para notificação (primeira verificação):', grupos);
-                        
-                        Object.values(grupos).forEach(grupo => {
-                            console.log('🔔 Enviando notificação inicial para:', grupo);
-                            sendPushNotification(grupo);
-                        });
-                    }
-                    
+                    // PRIMEIRA VEZ: Não notificar nada, apenas salvar estado
+                    console.log('🔇 Primeira verificação: não enviando notificações, apenas salvando estado');
                     return;
                 }
 
-                // DETECTAR NOVOS PEDIDOS: Por contagem OU mudança no hash
+                // DETECTAR PEDIDOS NOVOS: Por contagem OU por pedidos recentes (15 min)
                 let pedidosNovosDetectados = [];
+                let motivoDeteccao = '';
+                
+                if (currentCount > lastPedidosCount) {
+                    // MÉTODO 1: Mais pedidos que antes (NOVO PEDIDO CRIADO!)
+                    motivoDeteccao = `PEDIDO NOVO DETECTADO! Contagem: ${lastPedidosCount} → ${currentCount}`;
+                    console.log(`🆕 ${motivoDeteccao}`);
+                    
+                    // Notificar os pedidos dos últimos 15 minutos
+                    pedidosNovosDetectados = pedidosNovissimos;
+                    
+                } else if (currentCountNovissimos > 0 && currentCount === lastPedidosCount) {
+                    // MÉTODO 2: Há pedidos recentes (últimos 15 min) mesmo sem mudança de contagem
+                    motivoDeteccao = `PEDIDOS RECENTES DETECTADOS (${currentCountNovissimos} pedidos dos últimos 15 min)`;
+                    console.log(`⏰ ${motivoDeteccao}`);
+                    
+                    // Notificar os pedidos dos últimos 15 minutos
+                    pedidosNovosDetectados = pedidosNovissimos;
+                    
+                } else {
+                    // Nenhuma novidade detectada
+                    motivoDeteccao = 'Nenhum pedido novo detectado';
+                    console.log('✅ Sem novidades');
+                }
+                
+                console.log('🆕 Motivo da detecção:', motivoDeteccao);
+                console.log('🆕 Pedidos novos detectados:', pedidosNovosDetectados.length);
+                let pedidosNovosDetectados = [];
+                let motivoDeteccao = '';
                 
                 if (currentCount > lastPedidosCount) {
                     // MÉTODO 1: Mais pedidos que antes
-                    console.log(`🆕 Detectados ${currentCount - lastPedidosCount} novos pedidos por contagem!`);
+                    motivoDeteccao = `CONTAGEM AUMENTOU: ${lastPedidosCount} → ${currentCount}`;
+                    console.log(`🆕 ${motivoDeteccao}`);
                     
                     // Pegar TODOS os pedidos de hoje (incluindo os novos)
                     pedidosNovosDetectados = recentPedidos.filter(pedido => {
@@ -281,19 +284,45 @@
                             now.getDate()
                         ));
                         
-                        // Pedidos de hoje
                         return pedidoDateUTC.getTime() === nowDateUTC.getTime();
                     });
                     
-                    console.log(`📢 Notificando sobre ${pedidosNovosDetectados.length} pedidos de hoje (devido ao aumento de contagem)`);
-                    
                 } else if (currentHash !== lastPedidosHash) {
-                    // MÉTODO 2: Hash mudou (pedidos modificados/aprovados)
-                    console.log('🔄 Detectada mudança no estado dos pedidos (hash diferente)!');
-                    console.log('🔍 Hash anterior:', lastPedidosHash.slice(0, 100) + '...');
-                    console.log('🔍 Hash atual:', currentHash.slice(0, 100) + '...');
+                    // MÉTODO 2: CRÍTICO - Hash mudou (APROVAÇÕES/MODIFICAÇÕES detectadas!)
+                    motivoDeteccao = 'APROVAÇÃO DETECTADA - Hash mudou (pedidos foram aprovados)';
+                    console.log(`🔄 ${motivoDeteccao}`);
                     
-                    // Verificar pedidos de hoje que podem ter sido aprovados recentemente
+                    // Comparar estado anterior vs atual para identificar NOVOS APROVADOS
+                    try {
+                        const estadoAnterior = lastPedidosHash ? JSON.parse(lastPedidosHash) : [];
+                        const estadoAtual = JSON.parse(currentHash);
+                        
+                        console.log('� Analisando mudanças de aprovação:');
+                        console.log('Estado anterior:', estadoAnterior.length, 'pedidos');
+                        console.log('Estado atual:', estadoAtual.length, 'pedidos');
+                        
+                        // Identificar pedidos que foram aprovados agora
+                        const novosAprovados = estadoAtual.filter(atual => {
+                            const anterior = estadoAnterior.find(ant => 
+                                ant.responsavel === atual.responsavel && 
+                                ant.pagcorp === atual.pagcorp &&
+                                ant.data === atual.data
+                            );
+                            
+                            // Se não existia antes OU mudou status de aprovação
+                            return !anterior || anterior.aprovado !== atual.aprovado;
+                        });
+                        
+                        console.log('🆕 Novos pedidos aprovados detectados:', novosAprovados.length);
+                        novosAprovados.forEach(pedido => {
+                            console.log('✅ Aprovado:', pedido.responsavel, '- R$', pedido.total);
+                        });
+                        
+                    } catch (error) {
+                        console.log('⚠️ Erro ao comparar estados:', error);
+                    }
+                    
+                    // Notificar TODOS os pedidos de hoje que estão aprovados
                     pedidosNovosDetectados = recentPedidos.filter(pedido => {
                         const pedidoDate = new Date(pedido.DATA_ENVIO1);
                         const pedidoDateUTC = new Date(Date.UTC(
@@ -314,38 +343,51 @@
                                pedido.APROVADO_POR && 
                                pedido.APROVADO_POR.trim() !== '';
                     });
-                    
-                    console.log(`📢 Notificando sobre ${pedidosNovosDetectados.length} pedidos modificados de hoje`);
                 }
                 
+                console.log('🆕 Motivo da detecção:', motivoDeteccao);
                 console.log('🆕 Pedidos novos detectados:', pedidosNovosDetectados.length);
 
-                // Agrupar por responsável e enviar notificações
-                const grupos = {};
-                pedidosNovosDetectados.forEach(pedido => {
-                    const responsavel = pedido.RESPONSAVEL_PELO_CARTAO || 'Responsável não informado';
-                    if (!grupos[responsavel]) {
-                        grupos[responsavel] = {
-                            responsavel,
-                            total: 0,
-                            quantidade: 0
-                        };
+                // Agrupar por responsável e enviar notificações (APENAS se há mudanças recentes)
+                if (pedidosNovosDetectados.length > 0) {
+                    const grupos = {};
+                    pedidosNovosDetectados.forEach(pedido => {
+                        const responsavel = pedido.RESPONSAVEL_PELO_CARTAO || 'Responsável não informado';
+                        if (!grupos[responsavel]) {
+                            grupos[responsavel] = {
+                                responsavel,
+                                total: 0,
+                                quantidade: 0
+                            };
+                        }
+                        grupos[responsavel].total += parseFloat(pedido.TOTAL_PAGAR) || 0;
+                        grupos[responsavel].quantidade++;
+                    });
+
+                    console.log('👥 Grupos para notificação:', grupos);
+                    console.log('📢 Motivo:', motivoDeteccao);
+
+                    // FILTRO ANTI-SPAM: Só notificar se não foi a primeira verificação OU se realmente há mudanças
+                    const isFirstCheck = lastCheckTimestamp === null;
+                    const timeSinceLastCheck = Date.now() - (lastCheckTimestamp || 0);
+                    
+                    if (!isFirstCheck || timeSinceLastCheck > 15000) { // 15 segundos de cooldown
+                        // Enviar notificação para cada responsável
+                        Object.values(grupos).forEach(grupo => {
+                            console.log('🔔 Enviando notificação para:', grupo);
+                            sendPushNotification(grupo);
+                        });
+                        
+                        showNotification(`🔔 ${Object.keys(grupos).length} notificações enviadas! (${motivoDeteccao})`, 'success');
+                    } else {
+                        console.log('⏸️ Notificações suprimidas (muito recente ou primeira verificação)');
                     }
-                    grupos[responsavel].total += parseFloat(pedido.TOTAL_PAGAR) || 0;
-                    grupos[responsavel].quantidade++;
-                });
-
-                console.log('👥 Grupos para notificação:', grupos);
-
-                // Enviar notificação para cada responsável
-                Object.values(grupos).forEach(grupo => {
-                    console.log('🔔 Enviando notificação para:', grupo);
-                    sendPushNotification(grupo);
-                });
+                } else {
+                    console.log('✅ Nenhuma mudança detectada - sem notificações');
+                }
 
                 // Atualizar estado para próxima verificação
                 lastPedidosCount = currentCount;
-                lastPedidosHash = currentHash;
                 lastCheckTimestamp = Date.now();
                 console.log('⏰ Estado atualizado:', {
                     count: currentCount,
