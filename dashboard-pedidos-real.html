@@ -115,6 +115,18 @@
                     });
                 }
 
+                // Verificar pedidos criados/aprovados nas últimas 48 horas (para detectar pedidos recentes)
+                const recentPedidos = pedidosNovos.filter(pedido => {
+                    if (!pedido.DATA_ENVIO1) return false;
+                    
+                    const pedidoTime = new Date(pedido.DATA_ENVIO1).getTime();
+                    const now = Date.now();
+                    const timeDiff = now - pedidoTime;
+                    
+                    // Pedidos das últimas 48 horas
+                    return timeDiff <= 48 * 60 * 60 * 1000;
+                });
+
                 console.log('🕐 Pedidos das últimas 48h:', recentPedidos.length);
 
                 // Se é a primeira verificação, salvar timestamp mas também verificar pedidos muito recentes
