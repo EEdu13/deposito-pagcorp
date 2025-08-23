@@ -348,31 +348,29 @@
 
                         
                         console.log('� Analisando mudanças de aprovação:');
-                        console.log('Estado anterior:', estadoAnterior.length, 'pedidos');
-                        console.log('Estado atual:', estadoAtual.length, 'pedidos');
+                        // console.log('Estado anterior:', estadoAnterior.length, 'pedidos');
+                        // console.log('Estado atual:', estadoAtual.length, 'pedidos');
                         
                         // Identificar pedidos que foram aprovados agora
-                        const novosAprovados = estadoAtual.filter(atual => {
-                            const anterior = estadoAnterior.find(ant => 
-                                ant.responsavel === atual.responsavel && 
-                                ant.pagcorp === atual.pagcorp &&
-                                ant.data === atual.data
-                            );
-                            
-                            // Se não existia antes OU mudou status de aprovação
-                            return !anterior || anterior.aprovado !== atual.aprovado;
-                        });
+                        // const novosAprovados = estadoAtual.filter(atual => {
+                        //     const anterior = estadoAnterior.find(ant => 
+                        //         ant.responsavel === atual.responsavel && 
+                        //         ant.pagcorp === atual.pagcorp &&
+                        //         ant.data === atual.data
+                        //     );
+                        //     
+                        //     // Se não existia antes OU mudou status de aprovação
+                        //     return !anterior || anterior.aprovado !== atual.aprovado;
+                        // });
+                        // 
+                        // console.log('🆕 Novos pedidos aprovados detectados:', novosAprovados.length);
+                        // novosAprovados.forEach(pedido => {
+                        //     console.log('✅ Aprovado:', pedido.responsavel, '- R$', pedido.total);
+                        // });
                         
-                        console.log('🆕 Novos pedidos aprovados detectados:', novosAprovados.length);
-                        novosAprovados.forEach(pedido => {
-                            console.log('✅ Aprovado:', pedido.responsavel, '- R$', pedido.total);
-                        });
-                        
-                    } catch (error) {
-                        console.log('⚠️ Erro ao comparar estados:', error);
-                    }
-                    
-                    // Código removido - estava duplicado e mal formatado
+                    // } catch (error) {
+                    //     console.log('⚠️ Erro ao comparar estados:', error);
+                    // }
                 
                 // Agrupar por responsável e enviar notificações (APENAS se há mudanças recentes)
                 if (pedidosNovosDetectados.length > 0) {
@@ -419,6 +417,10 @@
                     count: currentCount,
                     timestamp: new Date(window.lastCheckTimestamp)
                 });
+
+            } catch (error) {
+                console.error('❌ Erro ao verificar novos pedidos:', error);
+            }
         }
         
         function sendPushNotification(grupo) {
