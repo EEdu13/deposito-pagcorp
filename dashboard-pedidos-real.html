@@ -18,8 +18,8 @@
         let notificationPermission = false;
         let lastCheckTimestamp = null;
         let lastPedidosCount = 0;  // NOVA: Contar pedidos para detectar novos
-        let lastPedidosHash = '';  // NOVA: Hash dos pedidos para detectar mudanças
         let monitoringInterval = null;
+        let monitoringActive = false;  // NOVA: Estado do monitoramento
         
         // Solicitar permissão para notificações ao carregar
         document.addEventListener('DOMContentLoaded', function() {
@@ -260,8 +260,8 @@
                 
                 console.log('🆕 Motivo da detecção:', motivoDeteccao);
                 console.log('🆕 Pedidos novos detectados:', pedidosNovosDetectados.length);
-                let pedidosNovosDetectados = [];
-                let motivoDeteccao = '';
+
+                // Agrupar por responsável e enviar notificações (APENAS se há mudanças recentes)
                 
                 if (currentCount > lastPedidosCount) {
                     // MÉTODO 1: Mais pedidos que antes
@@ -287,7 +287,16 @@
                         return pedidoDateUTC.getTime() === nowDateUTC.getTime();
                     });
                     
-                } else if (currentHash !== lastPedidosHash) {
+                } else {
+                    // Nenhuma novidade detectada
+                    motivoDeteccao = 'Nenhum pedido novo detectado';
+                    console.log('✅ Sem novidades');
+                }
+                
+                console.log('🆕 Motivo da detecção:', motivoDeteccao);
+                console.log('🆕 Pedidos novos detectados:', pedidosNovosDetectados.length);
+
+                // Agrupar por responsável e enviar notificações (APENAS se há mudanças recentes)
                     // MÉTODO 2: CRÍTICO - Hash mudou (APROVAÇÕES/MODIFICAÇÕES detectadas!)
                     motivoDeteccao = 'APROVAÇÃO DETECTADA - Hash mudou (pedidos foram aprovados)';
                     console.log(`🔄 ${motivoDeteccao}`);
@@ -328,26 +337,6 @@
                         const pedidoDateUTC = new Date(Date.UTC(
                             pedidoDate.getUTCFullYear(), 
                             pedidoDate.getUTCMonth(), 
-                            pedidoDate.getUTCDate()
-                        ));
-                        
-                        const now = new Date();
-                        const nowDateUTC = new Date(Date.UTC(
-                            now.getFullYear(), 
-                            now.getMonth(), 
-                            now.getDate()
-                        ));
-                        
-                        // Pedidos de hoje que foram aprovados
-                        return pedidoDateUTC.getTime() === nowDateUTC.getTime() && 
-                               pedido.APROVADO_POR && 
-                               pedido.APROVADO_POR.trim() !== '';
-                    });
-                }
-                
-                console.log('🆕 Motivo da detecção:', motivoDeteccao);
-                console.log('🆕 Pedidos novos detectados:', pedidosNovosDetectados.length);
-
                 // Agrupar por responsável e enviar notificações (APENAS se há mudanças recentes)
                 if (pedidosNovosDetectados.length > 0) {
                     const grupos = {};
@@ -931,7 +920,6 @@
         let dadosReais = [];
         let dadosFiltrados = [];
         let filtroAtivo = 'todos';
-        let monitoringActive = false;
 
         // Inicialização
         document.addEventListener('DOMContentLoaded', function() {
