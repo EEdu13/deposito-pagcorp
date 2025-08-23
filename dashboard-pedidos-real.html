@@ -14,12 +14,19 @@
     
     <!-- Push Notifications Support -->
     <script>
-        // Configuração de notificações push
-        let notificationPermission = false;
-        let lastCheckTimestamp = null;
-        let lastPedidosCount = 0;  // NOVA: Contar pedidos para detectar novos
-        let monitoringInterval = null;
-        let monitoringActive = false;  // NOVA: Estado do monitoramento
+        // ===== VARIÁVEIS GLOBAIS (acessíveis em toda a aplicação) =====
+        window.notificationPermission = false;
+        window.lastCheckTimestamp = null;
+        window.lastPedidosCount = 0;
+        window.monitoringInterval = null;
+        window.monitoringActive = false;
+        
+        // Aliases para facilitar acesso
+        let notificationPermission = window.notificationPermission;
+        let lastCheckTimestamp = window.lastCheckTimestamp;
+        let lastPedidosCount = window.lastPedidosCount;
+        let monitoringInterval = window.monitoringInterval;
+        let monitoringActive = window.monitoringActive;
         
         // Solicitar permissão para notificações ao carregar
         document.addEventListener('DOMContentLoaded', function() {
@@ -30,16 +37,17 @@
             if ('Notification' in window) {
                 console.log('🔔 Solicitando permissão de notificação...');
                 const permission = await Notification.requestPermission();
-                notificationPermission = permission === 'granted';
+                window.notificationPermission = permission === 'granted';
+                notificationPermission = window.notificationPermission;
                 
-                console.log('🔔 Permissão de notificação:', permission, '- Granted:', notificationPermission);
+                console.log('🔔 Permissão de notificação:', permission, '- Granted:', window.notificationPermission);
                 
-                if (notificationPermission) {
+                if (window.notificationPermission) {
                     showNotification('✅ Notificações ativadas! Monitoramento iniciado automaticamente.', 'success');
                     // Ativar monitoramento automaticamente
                     setTimeout(() => {
-                        console.log('🔔 Tentando ativar monitoramento automático...', 'monitoringActive:', monitoringActive);
-                        if (!monitoringActive) {
+                        console.log('🔔 Tentando ativar monitoramento automático...', 'monitoringActive:', window.monitoringActive);
+                        if (!window.monitoringActive) {
                             toggleMonitoring();
                         }
                     }, 2000);
@@ -53,14 +61,14 @@
         }
         
         function startPedidosMonitoring() {
-            if (monitoringInterval) {
-                clearInterval(monitoringInterval);
+            if (window.monitoringInterval) {
+                clearInterval(window.monitoringInterval);
             }
             
             console.log('🔔 Iniciando monitoramento de pedidos...');
             
             // Verificar novos pedidos a cada 10 segundos
-            monitoringInterval = setInterval(async () => {
+            window.monitoringInterval = setInterval(async () => {
                 console.log('⏰ Executando verificação automática...', new Date().toLocaleTimeString());
                 try {
                     await checkForNewPedidos();
@@ -70,19 +78,19 @@
                 }
             }, 10000); // 10 segundos
             
-            console.log('🔔 Monitoramento de pedidos iniciado (10s), interval ID:', monitoringInterval);
+            console.log('🔔 Monitoramento de pedidos iniciado (10s), interval ID:', window.monitoringInterval);
         }
         
         function stopPedidosMonitoring() {
-            if (monitoringInterval) {
-                clearInterval(monitoringInterval);
-                monitoringInterval = null;
+            if (window.monitoringInterval) {
+                clearInterval(window.monitoringInterval);
+                window.monitoringInterval = null;
                 console.log('🔔 Monitoramento de pedidos parado');
             }
         }
         
         async function checkForNewPedidos() {
-            if (!notificationPermission) return;
+            if (!window.notificationPermission) return;
             
             try {
                 console.log('🔍 Verificando novos pedidos...');
@@ -212,19 +220,19 @@
                 
                 console.log('📊 Análise de PEDIDOS NOVOS:', {
                     currentCount: currentCount,
-                    lastPedidosCount: lastPedidosCount,
+                    lastPedidosCount: window.lastPedidosCount,
                     currentCountNovissimos: currentCountNovissimos,
-                    countIncreased: currentCount > lastPedidosCount,
+                    countIncreased: currentCount > window.lastPedidosCount,
                     hasRecentOrders: currentCountNovissimos > 0
                 });
 
                 // Se é a primeira verificação, salvar estado inicial
-                if (lastPedidosCount === 0) {
-                    lastPedidosCount = currentCount;
-                    lastCheckTimestamp = Date.now();
+                if (window.lastPedidosCount === 0) {
+                    window.lastPedidosCount = currentCount;
+                    window.lastCheckTimestamp = Date.now();
                     console.log('⏰ Primeira verificação - salvando estado inicial:', {
                         count: currentCount,
-                        timestamp: new Date(lastCheckTimestamp)
+                        timestamp: new Date(window.lastCheckTimestamp)
                     });
                     
                     // PRIMEIRA VEZ: Não notificar nada, apenas salvar estado
@@ -236,15 +244,15 @@
                 let pedidosNovosDetectados = [];
                 let motivoDeteccao = '';
                 
-                if (currentCount > lastPedidosCount) {
+                if (currentCount > window.lastPedidosCount) {
                     // MÉTODO 1: Mais pedidos que antes (NOVO PEDIDO CRIADO!)
-                    motivoDeteccao = `PEDIDO NOVO DETECTADO! Contagem: ${lastPedidosCount} → ${currentCount}`;
+                    motivoDeteccao = `PEDIDO NOVO DETECTADO! Contagem: ${window.lastPedidosCount} → ${currentCount}`;
                     console.log(`🆕 ${motivoDeteccao}`);
                     
                     // Notificar os pedidos dos últimos 15 minutos
                     pedidosNovosDetectados = pedidosNovissimos;
                     
-                } else if (currentCountNovissimos > 0 && currentCount === lastPedidosCount) {
+                } else if (currentCountNovissimos > 0 && currentCount === window.lastPedidosCount) {
                     // MÉTODO 2: Há pedidos recentes (últimos 15 min) mesmo sem mudança de contagem
                     motivoDeteccao = `PEDIDOS RECENTES DETECTADOS (${currentCountNovissimos} pedidos dos últimos 15 min)`;
                     console.log(`⏰ ${motivoDeteccao}`);
@@ -263,9 +271,9 @@
 
                 // Agrupar por responsável e enviar notificações (APENAS se há mudanças recentes)
                 
-                if (currentCount > lastPedidosCount) {
+                if (currentCount > window.lastPedidosCount) {
                     // MÉTODO 1: Mais pedidos que antes
-                    motivoDeteccao = `CONTAGEM AUMENTOU: ${lastPedidosCount} → ${currentCount}`;
+                    motivoDeteccao = `CONTAGEM AUMENTOU: ${window.lastPedidosCount} → ${currentCount}`;
                     console.log(`🆕 ${motivoDeteccao}`);
                     
                     // Pegar TODOS os pedidos de hoje (incluindo os novos)
@@ -331,12 +339,8 @@
                         console.log('⚠️ Erro ao comparar estados:', error);
                     }
                     
-                    // Notificar TODOS os pedidos de hoje que estão aprovados
-                    pedidosNovosDetectados = recentPedidos.filter(pedido => {
-                        const pedidoDate = new Date(pedido.DATA_ENVIO1);
-                        const pedidoDateUTC = new Date(Date.UTC(
-                            pedidoDate.getUTCFullYear(), 
-                            pedidoDate.getUTCMonth(), 
+                    // Código removido - estava duplicado e mal formatado
+                
                 // Agrupar por responsável e enviar notificações (APENAS se há mudanças recentes)
                 if (pedidosNovosDetectados.length > 0) {
                     const grupos = {};
@@ -357,8 +361,8 @@
                     console.log('📢 Motivo:', motivoDeteccao);
 
                     // FILTRO ANTI-SPAM: Só notificar se não foi a primeira verificação OU se realmente há mudanças
-                    const isFirstCheck = lastCheckTimestamp === null;
-                    const timeSinceLastCheck = Date.now() - (lastCheckTimestamp || 0);
+                    const isFirstCheck = window.lastCheckTimestamp === null;
+                    const timeSinceLastCheck = Date.now() - (window.lastCheckTimestamp || 0);
                     
                     if (!isFirstCheck || timeSinceLastCheck > 15000) { // 15 segundos de cooldown
                         // Enviar notificação para cada responsável
@@ -376,11 +380,11 @@
                 }
 
                 // Atualizar estado para próxima verificação
-                lastPedidosCount = currentCount;
-                lastCheckTimestamp = Date.now();
+                window.lastPedidosCount = currentCount;
+                window.lastCheckTimestamp = Date.now();
                 console.log('⏰ Estado atualizado:', {
                     count: currentCount,
-                    timestamp: new Date(lastCheckTimestamp)
+                    timestamp: new Date(window.lastCheckTimestamp)
                 });
 
             } catch (error) {
@@ -396,7 +400,7 @@
             const mensagem = `Olá, ${responsavel} solicitou R$ ${total.toLocaleString('pt-BR', {minimumFractionDigits: 2})} (${quantidadeText}) e já foi aprovado.`;
             
             // Criar notificação do navegador
-            if (notificationPermission) {
+            if (window.notificationPermission) {
                 const notification = new Notification(titulo, {
                     body: mensagem,
                     icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="%232563eb"/><text x="50" y="60" font-family="Arial,sans-serif" font-size="35" fill="white" text-anchor="middle" font-weight="bold">💳</text></svg>',
@@ -937,11 +941,11 @@
             // Timer 1: Tentar ativar após 3 segundos
             setTimeout(() => {
                 console.log('⏰ Timer 3s - Estado:', {
-                    notificationPermission: notificationPermission,
-                    monitoringActive: monitoringActive
+                    notificationPermission: window.notificationPermission,
+                    monitoringActive: window.monitoringActive
                 });
                 
-                if (notificationPermission && !monitoringActive) {
+                if (window.notificationPermission && !window.monitoringActive) {
                     console.log('🔔 Ativando monitoramento (timer 3s)');
                     toggleMonitoring();
                 }
@@ -950,11 +954,11 @@
             // Timer 2: Tentar ativar após 5 segundos (backup)
             setTimeout(() => {
                 console.log('⏰ Timer 5s (backup) - Estado:', {
-                    notificationPermission: notificationPermission,
-                    monitoringActive: monitoringActive
+                    notificationPermission: window.notificationPermission,
+                    monitoringActive: window.monitoringActive
                 });
                 
-                if (notificationPermission && !monitoringActive) {
+                if (window.notificationPermission && !window.monitoringActive) {
                     console.log('🔔 Ativando monitoramento (timer 5s backup)');
                     toggleMonitoring();
                 }
@@ -962,7 +966,7 @@
             
             // Timer 3: Verificação periódica se monitoramento parou
             setInterval(() => {
-                if (notificationPermission && !monitoringActive) {
+                if (window.notificationPermission && !window.monitoringActive) {
                     console.log('⚠️ Monitoramento deveria estar ativo mas não está. Reativando...');
                     toggleMonitoring();
                 }
@@ -975,13 +979,13 @@
             const btn = document.getElementById('monitoringBtn');
             
             console.log('🔔 toggleMonitoring chamado. Estado atual:', {
-                monitoringActive: monitoringActive,
-                notificationPermission: notificationPermission,
-                monitoringInterval: monitoringInterval
+                monitoringActive: window.monitoringActive,
+                notificationPermission: window.notificationPermission,
+                monitoringInterval: window.monitoringInterval
             });
             
-            if (!monitoringActive) {
-                if (!notificationPermission) {
+            if (!window.monitoringActive) {
+                if (!window.notificationPermission) {
                     console.log('❌ Permissão de notificação necessária!');
                     showNotification('❌ Permissão de notificação necessária!', 'error');
                     requestNotificationPermission();
@@ -990,7 +994,7 @@
                 
                 console.log('🔔 Ativando monitoramento...');
                 startPedidosMonitoring();
-                monitoringActive = true;
+                window.monitoringActive = true;
                 btn.textContent = '🔔 Push ON';
                 btn.style.background = 'rgba(16, 185, 129, 0.3)';
                 btn.style.color = 'white';
@@ -999,7 +1003,7 @@
             } else {
                 console.log('🔔 Desativando monitoramento...');
                 stopPedidosMonitoring();
-                monitoringActive = false;
+                window.monitoringActive = false;
                 btn.textContent = '🔔 Push OFF';
                 btn.style.background = 'rgba(255,255,255,0.2)';
                 btn.style.color = 'white';
@@ -1009,7 +1013,7 @@
         }
         
         function forceCheck() {
-            if (!notificationPermission) {
+            if (!window.notificationPermission) {
                 showNotification('❌ Permissão de notificação necessária!', 'error');
                 return;
             }
@@ -1027,7 +1031,7 @@
         }
         
         function forceReset() {
-            if (!notificationPermission) {
+            if (!window.notificationPermission) {
                 showNotification('❌ Permissão de notificação necessária!', 'error');
                 return;
             }
@@ -1037,18 +1041,22 @@
             
             // Resetar estado para forçar detecção completa
             const oldState = {
-                lastPedidosCount: lastPedidosCount,
-                lastPedidosHash: lastPedidosHash,
-                lastCheckTimestamp: lastCheckTimestamp
+                lastPedidosCount: window.lastPedidosCount,
+                lastPedidosHash: window.lastPedidosHash,
+                lastCheckTimestamp: window.lastCheckTimestamp
             };
             
-            lastPedidosCount = 0;
-            lastPedidosHash = '';
-            lastCheckTimestamp = null;
+            window.lastPedidosCount = 0;
+            window.lastPedidosHash = '';
+            window.lastCheckTimestamp = null;
             
             console.log('🔄 Estado resetado FORÇADAMENTE:', {
                 oldState: oldState,
-                newState: { lastPedidosCount, lastPedidosHash, lastCheckTimestamp }
+                newState: { 
+                    lastPedidosCount: window.lastPedidosCount, 
+                    lastPedidosHash: window.lastPedidosHash, 
+                    lastCheckTimestamp: window.lastCheckTimestamp 
+                }
             });
             
             checkForNewPedidos().then(() => {
@@ -1058,7 +1066,7 @@
         }
         
         function testPushNotification() {
-            if (!notificationPermission) {
+            if (!window.notificationPermission) {
                 showNotification('❌ Permissão de notificação necessária!', 'error');
                 requestNotificationPermission();
                 return;
@@ -1081,7 +1089,7 @@
         }
         
         async function checkForNewPedidosManual() {
-            if (!notificationPermission) return;
+            if (!window.notificationPermission) return;
             
             try {
                 const apiUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
