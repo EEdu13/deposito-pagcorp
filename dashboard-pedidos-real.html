@@ -8,7 +8,7 @@
     <meta name="description" content="Sistema de depósito PAGCORP">
     
     <!-- Meta Tags -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="PAGCORP">
     
@@ -115,14 +115,49 @@
                     });
                 }
 
-                // Se é a primeira verificação, apenas salvar o timestamp
+                // Se é a primeira verificação, salvar timestamp mas também verificar pedidos muito recentes
                 if (!lastCheckTimestamp) {
                     lastCheckTimestamp = Date.now();
                     console.log('⏰ Primeira verificação - salvando timestamp:', new Date(lastCheckTimestamp));
+                    
+                    // Na primeira vez, verificar pedidos dos últimos 10 minutos
+                    const pedidosMuitoRecentes = recentPedidos.filter(pedido => {
+                        const pedidoTime = new Date(pedido.DATA_ENVIO1).getTime();
+                        const now = Date.now();
+                        const timeDiff = now - pedidoTime;
+                        return timeDiff <= 10 * 60 * 1000; // Últimos 10 minutos
+                    });
+                    
+                    console.log('🆕 Pedidos dos últimos 10 min (primeira verificação):', pedidosMuitoRecentes.length);
+                    
+                    if (pedidosMuitoRecentes.length > 0) {
+                        // Agrupar e notificar pedidos muito recentes
+                        const grupos = {};
+                        pedidosMuitoRecentes.forEach(pedido => {
+                            const responsavel = pedido.RESPONSAVEL_PELO_CARTAO || 'Responsável não informado';
+                            if (!grupos[responsavel]) {
+                                grupos[responsavel] = {
+                                    responsavel,
+                                    total: 0,
+                                    quantidade: 0
+                                };
+                            }
+                            grupos[responsavel].total += parseFloat(pedido.TOTAL_PAGAR) || 0;
+                            grupos[responsavel].quantidade++;
+                        });
+                        
+                        console.log('👥 Grupos para notificação (primeira verificação):', grupos);
+                        
+                        Object.values(grupos).forEach(grupo => {
+                            console.log('🔔 Enviando notificação inicial para:', grupo);
+                            sendPushNotification(grupo);
+                        });
+                    }
+                    
                     return;
                 }
 
-                // Verificar pedidos criados/aprovados nas últimas 30 minutos (para detectar pedidos recentes)
+                // Verificar pedidos criados/aprovados nas últimas 48 horas (para detectar pedidos recentes)
                 const recentPedidos = pedidosNovos.filter(pedido => {
                     if (!pedido.DATA_ENVIO1) return false;
                     
@@ -130,16 +165,16 @@
                     const now = Date.now();
                     const timeDiff = now - pedidoTime;
                     
-                    // Pedidos das últimas 30 minutos
-                    return timeDiff <= 30 * 60 * 1000;
+                    // Pedidos das últimas 48 horas
+                    return timeDiff <= 48 * 60 * 60 * 1000;
                 });
                 
-                console.log('🕐 Pedidos das últimas 30 min:', recentPedidos.length);
+                console.log('🕐 Pedidos das últimas 48h:', recentPedidos.length);
 
                 // Se há pedidos recentes, verificar se são "novos" desde a última verificação
                 const novosDesdeUltimaVerificacao = recentPedidos.filter(pedido => {
                     const pedidoTime = new Date(pedido.DATA_ENVIO1).getTime();
-                    const lastCheck = lastCheckTimestamp - 2 * 60000; // 2 minutos de margem
+                    const lastCheck = lastCheckTimestamp - 5 * 60000; // 5 minutos de margem
                     console.log('⏰ Comparando:', {
                         pedidoTime: new Date(pedidoTime),
                         lastCheck: new Date(lastCheck),
@@ -661,6 +696,7 @@
             </h1>
             <div class="header-actions">
                 <button class="header-btn" onclick="toggleMonitoring()" id="monitoringBtn">🔔 Ativando...</button>
+                <button class="header-btn" onclick="forceCheck()">🔄 Verificar Agora</button>
                 <button class="header-btn" onclick="testPushNotification()">🧪 Teste Push</button>
                 <button class="header-btn" onclick="limparCache()">Limpar Cache</button>
                 <button class="header-btn" onclick="atualizarDados()">Atualizar</button>
@@ -755,6 +791,25 @@
                 btn.style.color = 'white';
                 showNotification('🔔 Monitoramento automático desativado', 'info');
             }
+        }
+        
+        function forceCheck() {
+            if (!notificationPermission) {
+                showNotification('❌ Permissão de notificação necessária!', 'error');
+                return;
+            }
+            
+            console.log('🔄 Verificação MANUAL iniciada...');
+            showNotification('🔄 Verificando pedidos manualmente...', 'info');
+            
+            // Resetar timestamp para forçar detecção
+            const oldTimestamp = lastCheckTimestamp;
+            lastCheckTimestamp = null;
+            
+            checkForNewPedidos().then(() => {
+                console.log('✅ Verificação manual concluída');
+                showNotification('✅ Verificação manual concluída!', 'success');
+            });
         }
         
         function testPushNotification() {
