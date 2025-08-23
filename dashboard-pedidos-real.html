@@ -132,12 +132,25 @@
                 const recentPedidos = pedidosNovos.filter(pedido => {
                     if (!pedido.DATA_ENVIO1) return false;
                     
-                    const pedidoTime = new Date(pedido.DATA_ENVIO1).getTime();
-                    const now = Date.now();
-                    const timeDiff = now - pedidoTime;
+                    // Tratar apenas a data, ignorando horário para evitar problemas de fuso
+                    const pedidoDate = new Date(pedido.DATA_ENVIO1);
+                    const pedidoDateOnly = new Date(pedidoDate.getFullYear(), pedidoDate.getMonth(), pedidoDate.getDate());
                     
-                    // Pedidos das últimas 48 horas
-                    return timeDiff <= 48 * 60 * 60 * 1000;
+                    const now = new Date();
+                    const nowDateOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                    
+                    const timeDiff = nowDateOnly.getTime() - pedidoDateOnly.getTime();
+                    const daysDiff = timeDiff / (1000 * 60 * 60 * 24);
+                    
+                    console.log('📅 Comparação de datas:', {
+                        pedidoOriginal: pedido.DATA_ENVIO1,
+                        pedidoDateOnly: pedidoDateOnly.toDateString(),
+                        nowDateOnly: nowDateOnly.toDateString(),
+                        daysDiff: daysDiff
+                    });
+                    
+                    // Pedidos de até 2 dias atrás
+                    return daysDiff <= 2;
                 });
 
                 console.log('🕐 Pedidos das últimas 48h:', recentPedidos.length);
@@ -147,15 +160,19 @@
                     lastCheckTimestamp = Date.now();
                     console.log('⏰ Primeira verificação - salvando timestamp:', new Date(lastCheckTimestamp));
                     
-                    // Na primeira vez, verificar pedidos dos últimos 10 minutos
+                    // Na primeira vez, verificar pedidos de hoje
                     const pedidosMuitoRecentes = recentPedidos.filter(pedido => {
-                        const pedidoTime = new Date(pedido.DATA_ENVIO1).getTime();
-                        const now = Date.now();
-                        const timeDiff = now - pedidoTime;
-                        return timeDiff <= 10 * 60 * 1000; // Últimos 10 minutos
+                        const pedidoDate = new Date(pedido.DATA_ENVIO1);
+                        const pedidoDateOnly = new Date(pedidoDate.getFullYear(), pedidoDate.getMonth(), pedidoDate.getDate());
+                        
+                        const today = new Date();
+                        const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                        
+                        // Pedidos de hoje
+                        return pedidoDateOnly.getTime() === todayDateOnly.getTime();
                     });
                     
-                    console.log('🆕 Pedidos dos últimos 10 min (primeira verificação):', pedidosMuitoRecentes.length);
+                    console.log('🆕 Pedidos de hoje (primeira verificação):', pedidosMuitoRecentes.length);
                     
                     if (pedidosMuitoRecentes.length > 0) {
                         // Agrupar e notificar pedidos muito recentes
