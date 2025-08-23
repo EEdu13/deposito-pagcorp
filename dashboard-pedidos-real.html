@@ -12,6 +12,41 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="PAGCORP">
     
+    <!-- PWA Auto-Update Support -->
+    <script>
+        // Registrar Service Worker para auto-update
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(function(registration) {
+                        console.log('✅ Service Worker registrado:', registration.scope);
+                        
+                        // Verificar por atualizações a cada 30 segundos
+                        setInterval(() => {
+                            registration.update();
+                        }, 30000);
+                        
+                        // Detectar quando há uma nova versão
+                        registration.addEventListener('updatefound', () => {
+                            const newWorker = registration.installing;
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    // Nova versão disponível
+                                    showNotification('🔄 Nova versão disponível! Recarregando...', 'info');
+                                    setTimeout(() => {
+                                        window.location.reload();
+                                    }, 2000);
+                                }
+                            });
+                        });
+                    })
+                    .catch(function(error) {
+                        console.log('❌ Erro ao registrar Service Worker:', error);
+                    });
+            });
+        }
+    </script>
+    
     <!-- Push Notifications Support -->
     <script>
         // ===== VARIÁVEIS GLOBAIS (acessíveis em toda a aplicação) =====
@@ -249,8 +284,21 @@
                     motivoDeteccao = `PEDIDO NOVO DETECTADO! Contagem: ${window.lastPedidosCount} → ${currentCount}`;
                     console.log(`🆕 ${motivoDeteccao}`);
                     
-                    // Notificar os pedidos dos últimos 15 minutos
-                    pedidosNovosDetectados = pedidosNovissimos;
+                    // CORREÇÃO: Notificar APENAS os pedidos dos últimos 15 minutos (realmente novos)
+                    if (pedidosNovissimos.length > 0) {
+                        pedidosNovosDetectados = pedidosNovissimos;
+                        console.log(`🎯 Notificando APENAS ${pedidosNovissimos.length} pedidos novíssimos (últimos 15 min)`);
+                    } else {
+                        // Se não há pedidos dos últimos 15 min, pegar apenas os de hoje mais recentes
+                        const pedidosHoje = recentPedidos.filter(pedido => {
+                            const pedidoDate = new Date(pedido.DATA_ENVIO1);
+                            const hoje = new Date();
+                            return pedidoDate.toDateString() === hoje.toDateString();
+                        }).slice(-1); // Apenas o mais recente
+                        
+                        pedidosNovosDetectados = pedidosHoje;
+                        console.log(`🎯 Notificando apenas o pedido mais recente de hoje: ${pedidosHoje.length}`);
+                    }
                     
                 } else if (currentCountNovissimos > 0 && currentCount === window.lastPedidosCount) {
                     // MÉTODO 2: Há pedidos recentes (últimos 15 min) mesmo sem mudança de contagem
@@ -276,24 +324,15 @@
                     motivoDeteccao = `CONTAGEM AUMENTOU: ${window.lastPedidosCount} → ${currentCount}`;
                     console.log(`🆕 ${motivoDeteccao}`);
                     
-                    // Pegar TODOS os pedidos de hoje (incluindo os novos)
-                    pedidosNovosDetectados = recentPedidos.filter(pedido => {
-                        const pedidoDate = new Date(pedido.DATA_ENVIO1);
-                        const pedidoDateUTC = new Date(Date.UTC(
-                            pedidoDate.getUTCFullYear(), 
-                            pedidoDate.getUTCMonth(), 
-                            pedidoDate.getUTCDate()
-                        ));
-                        
-                        const now = new Date();
-                        const nowDateUTC = new Date(Date.UTC(
-                            now.getFullYear(), 
-                            now.getMonth(), 
-                            now.getDate()
-                        ));
-                        
-                        return pedidoDateUTC.getTime() === nowDateUTC.getTime();
-                    });
+                    // CORREÇÃO: Pegar APENAS os pedidos realmente novos (diferença)
+                    const diferencaNovos = currentCount - window.lastPedidosCount;
+                    console.log(`📊 Diferença de novos pedidos: ${diferencaNovos}`);
+                    
+                    // Pegar os pedidos mais recentes baseado na diferença
+                    const pedidosOrdenados = recentPedidos.sort((a, b) => new Date(b.DATA_ENVIO1) - new Date(a.DATA_ENVIO1));
+                    pedidosNovosDetectados = pedidosOrdenados.slice(0, diferencaNovos);
+                    
+                    console.log(`🎯 Selecionando apenas os ${diferencaNovos} pedidos mais recentes para notificação`);
                     
                 } else {
                     // Nenhuma novidade detectada
@@ -305,14 +344,8 @@
                 console.log('🆕 Pedidos novos detectados:', pedidosNovosDetectados.length);
 
                 // Agrupar por responsável e enviar notificações (APENAS se há mudanças recentes)
-                    // MÉTODO 2: CRÍTICO - Hash mudou (APROVAÇÕES/MODIFICAÇÕES detectadas!)
-                    motivoDeteccao = 'APROVAÇÃO DETECTADA - Hash mudou (pedidos foram aprovados)';
-                    console.log(`🔄 ${motivoDeteccao}`);
-                    
-                    // Comparar estado anterior vs atual para identificar NOVOS APROVADOS
-                    try {
-                        const estadoAnterior = lastPedidosHash ? JSON.parse(lastPedidosHash) : [];
-                        const estadoAtual = JSON.parse(currentHash);
+
+
                         
                         console.log('� Analisando mudanças de aprovação:');
                         console.log('Estado anterior:', estadoAnterior.length, 'pedidos');
@@ -386,10 +419,6 @@
                     count: currentCount,
                     timestamp: new Date(window.lastCheckTimestamp)
                 });
-
-            } catch (error) {
-                console.error('❌ Erro ao verificar novos pedidos:', error);
-            }
         }
         
         function sendPushNotification(grupo) {
@@ -407,19 +436,32 @@
                     badge: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="%232563eb"/><text x="50" y="60" font-family="Arial,sans-serif" font-size="35" fill="white" text-anchor="middle" font-weight="bold">💳</text></svg>',
                     tag: `pedido-${responsavel}`,
                     requireInteraction: true,
-                    timestamp: Date.now()
+                    timestamp: Date.now(),
+                    silent: false,
+                    vibrate: [200, 100, 200]
                 });
                 
-                // Auto-fechar após 10 segundos
+                // CORREÇÃO: Auto-fechar após 15 segundos (antes era 10)
                 setTimeout(() => {
                     notification.close();
-                }, 10000);
+                }, 15000);
                 
                 // Click para abrir a aplicação
                 notification.onclick = function() {
                     window.focus();
                     notification.close();
                 };
+                
+                // Reproduzir som (se permitido)
+                try {
+                    const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhCjOH0fDOdicGJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhCjOH0fDOdicGJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhCjOH0fDOdigGI3nF8N+PQgwVYrvr7apbGQlIpOLxwGgiCjKH0vDOdigGI3nF8N+PQgwVYrvr7apbGQlIpOLxwGgiCjKH0vDOdigGI3nF8N+PQgwVYrvr7apbGQlIpOLxwGgiCjKH0vDOdigGI3nF8N+PQgwVYrvr7apbGQlIpOLxwGgiCjKH0vDOedigGI3nF8N+PQgwVYrvr7apbGQlIpOLxwGgiCjKH0vDOdigGI3nF8N+PQgwVYrvr7apbGQlIpOLxwGgiCjKH0vDOdigGI3nF8N+PQgwVYrvr7apbGQlIpOLxwGgiCjKH0vDOdigGI3nF8N+PQgwVYrvr7apbGQlIpOLxwGgiCjKH0vDOdigGI3nF8N+PQgwVYrvr7apbGQlIpOLxwGgiCjKH0vDOdigGI3nF8N+PQgwVYrvr7apbGQlIpOLxwGgiCjKH0vDO');
+                    audio.volume = 0.1;
+                    audio.play().catch(() => {
+                        console.log('🔇 Áudio bloqueado pelo navegador');
+                    });
+                } catch (e) {
+                    console.log('🔇 Áudio não suportado');
+                }
             }
             
             // Também mostrar notificação interna
