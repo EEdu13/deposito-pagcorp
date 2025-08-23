@@ -132,21 +132,30 @@
                 const recentPedidos = pedidosNovos.filter(pedido => {
                     if (!pedido.DATA_ENVIO1) return false;
                     
-                    // Tratar apenas a data, ignorando horário para evitar problemas de fuso
+                    // SOLUÇÃO: Usar UTC para evitar problemas de fuso horário
                     const pedidoDate = new Date(pedido.DATA_ENVIO1);
-                    const pedidoDateOnly = new Date(pedidoDate.getFullYear(), pedidoDate.getMonth(), pedidoDate.getDate());
+                    const pedidoDateUTC = new Date(Date.UTC(
+                        pedidoDate.getUTCFullYear(), 
+                        pedidoDate.getUTCMonth(), 
+                        pedidoDate.getUTCDate()
+                    ));
                     
                     const now = new Date();
-                    const nowDateOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                    const nowDateUTC = new Date(Date.UTC(
+                        now.getFullYear(), 
+                        now.getMonth(), 
+                        now.getDate()
+                    ));
                     
-                    const timeDiff = nowDateOnly.getTime() - pedidoDateOnly.getTime();
+                    const timeDiff = nowDateUTC.getTime() - pedidoDateUTC.getTime();
                     const daysDiff = timeDiff / (1000 * 60 * 60 * 24);
                     
-                    console.log('📅 Comparação de datas:', {
+                    console.log('📅 Comparação de datas (UTC):', {
                         pedidoOriginal: pedido.DATA_ENVIO1,
-                        pedidoDateOnly: pedidoDateOnly.toDateString(),
-                        nowDateOnly: nowDateOnly.toDateString(),
-                        daysDiff: daysDiff
+                        pedidoDateUTC: pedidoDateUTC.toISOString().split('T')[0],
+                        nowDateUTC: nowDateUTC.toISOString().split('T')[0],
+                        daysDiff: daysDiff,
+                        isRecent: daysDiff <= 2
                     });
                     
                     // Pedidos de até 2 dias atrás
@@ -163,13 +172,21 @@
                     // Na primeira vez, verificar pedidos de hoje
                     const pedidosMuitoRecentes = recentPedidos.filter(pedido => {
                         const pedidoDate = new Date(pedido.DATA_ENVIO1);
-                        const pedidoDateOnly = new Date(pedidoDate.getFullYear(), pedidoDate.getMonth(), pedidoDate.getDate());
+                        const pedidoDateUTC = new Date(Date.UTC(
+                            pedidoDate.getUTCFullYear(), 
+                            pedidoDate.getUTCMonth(), 
+                            pedidoDate.getUTCDate()
+                        ));
                         
                         const today = new Date();
-                        const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                        const todayDateUTC = new Date(Date.UTC(
+                            today.getFullYear(), 
+                            today.getMonth(), 
+                            today.getDate()
+                        ));
                         
-                        // Pedidos de hoje
-                        return pedidoDateOnly.getTime() === todayDateOnly.getTime();
+                        // Pedidos de hoje (usando UTC)
+                        return pedidoDateUTC.getTime() === todayDateUTC.getTime();
                     });
                     
                     console.log('🆕 Pedidos de hoje (primeira verificação):', pedidosMuitoRecentes.length);
