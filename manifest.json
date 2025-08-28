@@ -2,7 +2,7 @@
   "name": "PAGCORP - Depósito de Saldo",
   "short_name": "PAGCORP",
   "description": "Sistema de depósitos e pagamentos PAGCORP",
-  "start_url": "/",
+  "start_url": "/dashboard-pedidos-real.html",
   "display": "standalone",
   "orientation": "portrait",
   "theme_color": "#2563eb",

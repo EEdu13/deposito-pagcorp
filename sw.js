@@ -1,7 +1,6 @@
 // Service Worker para PWA Auto-Update
 const CACHE_NAME = 'pagcorp-v' + Date.now();
 const urlsToCache = [
-    '/',
     '/dashboard-pedidos-real.html',
     '/manifest.json',
     '/icon-72x72.png',
@@ -14,9 +13,7 @@ const urlsToCache = [
     '/icon-512x512.png',
     '/icon-192x192-maskable.png',
     '/icon-512x512-maskable.png',
-    '/LARSIL_branco_fundo_transparente.png',
-    '/app.py',
-    '/api/pedidos'
+    '/LARSIL_branco_fundo_transparente.png'
 ];
 
 // Instalar Service Worker

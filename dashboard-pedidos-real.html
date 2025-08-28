@@ -24,7 +24,7 @@
     
     <!-- Chrome específico para forçar modo standalone -->
     <meta name="application-name" content="PAGCORP">
-    <meta name="msapplication-starturl" content="/">
+    <meta name="msapplication-starturl" content="/dashboard-pedidos-real.html">
     <meta name="msapplication-navbutton-color" content="#2563eb">
     
     <!-- Ícones para diferentes dispositivos -->
@@ -56,7 +56,12 @@
             // 4. Verificar manifest via fetch
             if (manifestLink) {
                 fetch(manifestLink.href)
-                    .then(response => response.json())
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}`);
+                        }
+                        return response.json();
+                    })
                     .then(manifest => {
                         console.log('✅ Manifest carregado:', manifest);
                         console.log('   - Nome:', manifest.name);
@@ -64,13 +69,52 @@
                         console.log('   - Display:', manifest.display);
                         console.log('   - Ícones:', manifest.icons?.length, 'encontrados');
                         
-                        // Verificar ícones obrigatórios
-                        const hasRequiredIcons = manifest.icons?.some(icon => 
-                            icon.sizes.includes('192x192') || icon.sizes.includes('512x512')
-                        );
-                        console.log('   - Ícones obrigatórios (192/512):', hasRequiredIcons);
+                        // Verificar ícones obrigatórios para PWA
+                        const icons192 = manifest.icons?.filter(icon => icon.sizes.includes('192x192'));
+                        const icons512 = manifest.icons?.filter(icon => icon.sizes.includes('512x512'));
+                        const hasMaskable = manifest.icons?.some(icon => icon.purpose?.includes('maskable'));
+                        
+                        console.log('   - Ícones 192x192:', icons192?.length || 0);
+                        console.log('   - Ícones 512x512:', icons512?.length || 0);
+                        console.log('   - Ícones maskable:', hasMaskable);
+                        
+                        // Verificar start_url
+                        const currentPath = window.location.pathname;
+                        const manifestStartUrl = manifest.start_url;
+                        console.log('   - Página atual:', currentPath);
+                        console.log('   - Start URL do manifest:', manifestStartUrl);
+                        
+                        // Critérios PWA Android Chrome
+                        const criterios = {
+                            serviceWorker: hasServiceWorker,
+                            https: isHTTPS,
+                            manifest: !!manifestLink,
+                            icons192: icons192?.length > 0,
+                            icons512: icons512?.length > 0,
+                            display: manifest.display === 'standalone',
+                            startUrl: !!manifest.start_url
+                        };
+                        
+                        console.log('📋 CRITÉRIOS PWA ANDROID:');
+                        Object.entries(criterios).forEach(([key, value]) => {
+                            console.log(`   ${value ? '✅' : '❌'} ${key}:`, value);
+                        });
+                        
+                        const todosOK = Object.values(criterios).every(v => v);
+                        console.log('🎯 RESULTADO PWA:', todosOK ? '✅ TODOS OS CRITÉRIOS OK' : '❌ CRITÉRIOS FALTANDO');
+                        
+                        if (!todosOK) {
+                            console.log('💡 POSSÍVEIS SOLUÇÕES:');
+                            if (!criterios.icons192) console.log('   - Adicionar ícone 192x192');
+                            if (!criterios.icons512) console.log('   - Adicionar ícone 512x512');
+                            if (!criterios.display) console.log('   - Definir display: standalone');
+                            if (!criterios.startUrl) console.log('   - Definir start_url válida');
+                        }
                     })
-                    .catch(err => console.error('❌ Erro ao carregar manifest:', err));
+                    .catch(err => {
+                        console.error('❌ Erro ao carregar manifest:', err);
+                        console.log('💡 Verifique se manifest.json está acessível');
+                    });
             }
             
             // 5. Verificar se está sendo servido como PWA
@@ -84,11 +128,18 @@
             console.log('✅ Android:', isAndroid);
             console.log('✅ Chrome:', isChrome);
             
-            // 7. Resumo
-            const criteriosAtendidos = hasServiceWorker && isHTTPS && !!manifestLink;
-            console.log('🎯 RESULTADO:', criteriosAtendidos ? 'PWA VÁLIDO' : 'PWA INVÁLIDO');
+            // 7. Verificar Service Worker status
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(registrations => {
+                    console.log('🔧 Service Workers registrados:', registrations.length);
+                    registrations.forEach((reg, index) => {
+                        console.log(`   SW ${index + 1}:`, reg.scope);
+                        console.log(`   - Estado:`, reg.active ? 'Ativo' : 'Inativo');
+                    });
+                });
+            }
             
-            return criteriosAtendidos;
+            return true;
         }
 
         // Verificar critérios ao carregar
