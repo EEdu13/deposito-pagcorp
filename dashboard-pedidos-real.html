@@ -4,13 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DEPÓSITO DE SALDO PAGCORP - Sistema de Refeições</title>
-    <meta name="theme-color" content="#2563eb">
-    <meta name="description" content="Sistema de depósito PAGCORP">
     
-    <!-- Meta Tags -->
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    
+    <!-- Meta Tags PWA -->
+    <meta name="theme-color" content="#2c3e50">
+    <meta name="description" content="Dashboard de pagamentos e depósitos LARSIL">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="PAGCORP">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="LARSIL Pay">
+    
+    <!-- Ícones para diferentes dispositivos -->
+    <link rel="icon" type="image/png" sizes="192x192" href="/LARSIL_branco_fundo_transparente.png">
+    <link rel="apple-touch-icon" href="/LARSIL_branco_fundo_transparente.png">
     
     <!-- PWA Auto-Update Support -->
     <script>
@@ -46,6 +54,27 @@
                     });
             });
         }
+
+        // PWA Install Prompt
+        let deferredPrompt;
+        
+        window.addEventListener('beforeinstallprompt', (e) => {
+            console.log('💾 PWA pode ser instalado');
+            // Previne o prompt automático
+            e.preventDefault();
+            // Salva o evento para usar depois
+            deferredPrompt = e;
+            
+            // Mostra uma notificação discreta sobre instalação
+            setTimeout(() => {
+                showNotification('📱 Este app pode ser instalado na tela inicial do seu dispositivo!', 'info');
+            }, 5000);
+        });
+
+        window.addEventListener('appinstalled', (evt) => {
+            console.log('🎉 PWA foi instalado com sucesso');
+            showNotification('✅ App instalado com sucesso!', 'success');
+        });
     </script>
     
     <!-- Push Notifications Support -->

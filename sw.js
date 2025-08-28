@@ -3,6 +3,8 @@ const CACHE_NAME = 'pagcorp-v' + Date.now();
 const urlsToCache = [
     '/',
     '/dashboard-pedidos-real.html',
+    '/manifest.json',
+    '/LARSIL_branco_fundo_transparente.png',
     '/app.py',
     '/api/pedidos'
 ];
