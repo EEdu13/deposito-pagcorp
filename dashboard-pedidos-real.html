@@ -151,19 +151,6 @@
 
                 console.log('📈 Total de pedidos:', resultado.data.length);
 
-                // Log de TODOS os pedidos para debug
-                console.log('🔍 TODOS OS PEDIDOS:');
-                resultado.data.forEach((pedido, index) => {
-                    console.log(`Pedido ${index + 1}:`, {
-                        DATA_ENVIO1: pedido.DATA_ENVIO1,
-                        FECHAMENTO: pedido.FECHAMENTO,
-                        APROVADO_POR: pedido.APROVADO_POR,
-                        DEPOSITADO: pedido.DEPOSITADO,
-                        RESPONSAVEL_PELO_CARTAO: pedido.RESPONSAVEL_PELO_CARTAO,
-                        TOTAL_PAGAR: pedido.TOTAL_PAGAR
-                    });
-                });
-
                 // Filtrar pedidos sem fechamento e aprovados
                 const pedidosNovos = resultado.data.filter(pedido => 
                     pedido.FECHAMENTO !== 'SIM' && 
@@ -176,18 +163,6 @@
                 
                 console.log('✅ Pedidos válidos (aprovados e não fechados):', pedidosNovos.length);
                 
-                // Log de alguns pedidos para debug
-                if (pedidosNovos.length > 0) {
-                    console.log('🔍 Exemplo de pedido:', pedidosNovos[0]);
-                    console.log('🔍 Campos importantes:', {
-                        DATA_ENVIO1: pedidosNovos[0].DATA_ENVIO1,
-                        FECHAMENTO: pedidosNovos[0].FECHAMENTO,
-                        APROVADO_POR: pedidosNovos[0].APROVADO_POR,
-                        DEPOSITADO: pedidosNovos[0].DEPOSITADO,
-                        RESPONSAVEL_PELO_CARTAO: pedidosNovos[0].RESPONSAVEL_PELO_CARTAO
-                    });
-                }
-
                 // Verificar pedidos criados/aprovados nas últimas 48 horas (para detectar pedidos recentes)
                 const recentPedidos = pedidosNovos.filter(pedido => {
                     if (!pedido.DATA_ENVIO1) return false;
@@ -918,7 +893,6 @@
                 <button class="header-btn" onclick="toggleMonitoring()" id="monitoringBtn">🔔 Ativando...</button>
                 <button class="header-btn" onclick="forceCheck()">🔄 Verificar Agora</button>
                 <button class="header-btn" onclick="forceReset()">🆕 Reset & Verificar</button>
-                <button class="header-btn" onclick="testPushNotification()">🧪 Teste Push</button>
                 <button class="header-btn" onclick="atualizarDados()">Atualizar</button>
             </div>
         </header>
@@ -1107,29 +1081,6 @@
                 console.log('✅ Reset e verificação concluídos');
                 showNotification('✅ Reset completo! Todas as notificações enviadas.', 'success');
             });
-        }
-        
-        function testPushNotification() {
-            if (!window.notificationPermission) {
-                showNotification('❌ Permissão de notificação necessária!', 'error');
-                requestNotificationPermission();
-                return;
-            }
-            
-            // Se há dados carregados, usar dados reais
-            if (dadosFiltrados && dadosFiltrados.length > 0) {
-                checkForNewPedidosManual();
-            } else {
-                // Senão, enviar push de teste
-                const testGroup = {
-                    responsavel: 'RONALDO APARECIDO DE BARROS',
-                    total: 1380.00,
-                    quantidade: 1
-                };
-                
-                sendPushNotification(testGroup);
-                showNotification('🧪 Push de teste enviado!', 'success');
-            }
         }
         
         async function checkForNewPedidosManual() {
