@@ -9,37 +9,90 @@
     <link rel="manifest" href="/manifest.json">
     
     <!-- Meta Tags PWA -->
-    <meta name="theme-color" content="#2c3e50">
-    <meta name="description" content="Dashboard de pagamentos e depósitos LARSIL">
+    <meta name="theme-color" content="#2563eb">
+    <meta name="description" content="Sistema de depósitos e pagamentos PAGCORP">
     
     <!-- Android/Chrome específico -->
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="mobile-web-app-title" content="LARSIL Pay">
+    <meta name="mobile-web-app-status-bar-style" content="default">
+    <meta name="mobile-web-app-title" content="PAGCORP">
     
     <!-- iOS Safari específico -->
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="LARSIL Pay">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="PAGCORP">
     
     <!-- Chrome específico para forçar modo standalone -->
-    <meta name="application-name" content="LARSIL Pay">
-    <meta name="msapplication-starturl" content="/dashboard-pedidos-real.html">
-    <meta name="msapplication-navbutton-color" content="#2c3e50">
+    <meta name="application-name" content="PAGCORP">
+    <meta name="msapplication-starturl" content="/">
+    <meta name="msapplication-navbutton-color" content="#2563eb">
     
     <!-- Ícones para diferentes dispositivos -->
-    <link rel="icon" type="image/png" sizes="192x192" href="/LARSIL_branco_fundo_transparente.png">
-    <link rel="apple-touch-icon" href="/LARSIL_branco_fundo_transparente.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192x192.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/icon-192x192.png">
     
     <!-- PWA Auto-Update Support -->
     <script>
-        // Verificar se PWA é instalável
-        window.addEventListener('load', function() {
-            console.log('🔍 Verificando critérios PWA...');
-            console.log('Service Worker disponível:', 'serviceWorker' in navigator);
-            console.log('HTTPS:', location.protocol === 'https:');
-            console.log('Manifest:', document.querySelector('link[rel="manifest"]') !== null);
-        });
+        // ===== DEBUGGING PWA COMPLETO =====
+        function verificarCriteriosPWA() {
+            console.log('🔍 === VERIFICAÇÃO CRITÉRIOS PWA ===');
+            
+            // 1. Service Worker
+            const hasServiceWorker = 'serviceWorker' in navigator;
+            console.log('✅ Service Worker disponível:', hasServiceWorker);
+            
+            // 2. HTTPS
+            const isHTTPS = location.protocol === 'https:' || location.hostname === 'localhost';
+            console.log('✅ HTTPS/Localhost:', isHTTPS);
+            
+            // 3. Manifest
+            const manifestLink = document.querySelector('link[rel="manifest"]');
+            console.log('✅ Manifest linkado:', !!manifestLink);
+            if (manifestLink) {
+                console.log('   - Manifest URL:', manifestLink.href);
+            }
+            
+            // 4. Verificar manifest via fetch
+            if (manifestLink) {
+                fetch(manifestLink.href)
+                    .then(response => response.json())
+                    .then(manifest => {
+                        console.log('✅ Manifest carregado:', manifest);
+                        console.log('   - Nome:', manifest.name);
+                        console.log('   - Start URL:', manifest.start_url);
+                        console.log('   - Display:', manifest.display);
+                        console.log('   - Ícones:', manifest.icons?.length, 'encontrados');
+                        
+                        // Verificar ícones obrigatórios
+                        const hasRequiredIcons = manifest.icons?.some(icon => 
+                            icon.sizes.includes('192x192') || icon.sizes.includes('512x512')
+                        );
+                        console.log('   - Ícones obrigatórios (192/512):', hasRequiredIcons);
+                    })
+                    .catch(err => console.error('❌ Erro ao carregar manifest:', err));
+            }
+            
+            // 5. Verificar se está sendo servido como PWA
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+            const isInStandaloneMode = (window.navigator.standalone) || isStandalone;
+            console.log('✅ Modo standalone ativo:', isInStandaloneMode);
+            
+            // 6. User Agent
+            const isAndroid = /android/i.test(navigator.userAgent);
+            const isChrome = /chrome/i.test(navigator.userAgent);
+            console.log('✅ Android:', isAndroid);
+            console.log('✅ Chrome:', isChrome);
+            
+            // 7. Resumo
+            const criteriosAtendidos = hasServiceWorker && isHTTPS && !!manifestLink;
+            console.log('🎯 RESULTADO:', criteriosAtendidos ? 'PWA VÁLIDO' : 'PWA INVÁLIDO');
+            
+            return criteriosAtendidos;
+        }
+
+        // Verificar critérios ao carregar
+        window.addEventListener('load', verificarCriteriosPWA);
 
         // Registrar Service Worker para auto-update
         if ('serviceWorker' in navigator) {
@@ -74,49 +127,58 @@
             });
         }
 
-        // PWA Install Prompt
+        // PWA Install Prompt - MELHORADO
         let deferredPrompt;
         let isAndroid = /android/i.test(navigator.userAgent);
+        let isChrome = /chrome/i.test(navigator.userAgent);
         
         window.addEventListener('beforeinstallprompt', (e) => {
-            console.log('💾 PWA install prompt disponível');
-            console.log('Dispositivo Android:', isAndroid);
+            console.log('🎉 EVENTO beforeinstallprompt DISPARADO!');
+            console.log('   - PWA é oficialmente instalável pelo Chrome');
+            console.log('   - Dispositivo:', isAndroid ? 'Android' : 'Outro');
+            
             // Previne o prompt automático
             e.preventDefault();
             // Salva o evento para usar depois
             deferredPrompt = e;
             
-            // Mostra prompt mais cedo em Android
-            if (isAndroid) {
+            // Mostra notificação imediata
+            showNotification('🎉 PWA detectado! App pode ser instalado!', 'success');
+            
+            // Instruções específicas para Android
+            if (isAndroid && isChrome) {
                 setTimeout(() => {
-                    showNotification('📱 App disponível! Toque no menu do navegador → "Adicionar à tela inicial"', 'info');
-                }, 2000);
-            } else {
-                setTimeout(() => {
-                    showNotification('📱 Este app pode ser instalado na tela inicial do seu dispositivo!', 'info');
-                }, 5000);
-            }
-        });
-        
-        // Detectar se não recebeu o prompt em Android
-        window.addEventListener('load', function() {
-            if (isAndroid) {
-                setTimeout(() => {
-                    if (!deferredPrompt) {
-                        console.log('⚠️ Android não detectou PWA como instalável');
-                        console.log('Verificando requisitos...');
-                        // Mostrar instruções manuais
-                        setTimeout(() => {
-                            showNotification('📱 Para instalar: Menu do Chrome → "Adicionar à tela inicial"', 'info');
-                        }, 10000);
-                    }
+                    showNotification('📱 Android: Menu Chrome → "Adicionar à tela inicial" ou ícone de instalação na barra', 'info');
                 }, 3000);
             }
         });
-
+        
+        // Detectar se PWA não é reconhecido como instalável
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                if (!deferredPrompt && isAndroid && isChrome) {
+                    console.log('⚠️ PROBLEMA: beforeinstallprompt NÃO foi disparado');
+                    console.log('   - PWA pode não atender aos critérios do Android');
+                    console.log('   - Verificando critérios...');
+                    
+                    const criteriosOK = verificarCriteriosPWA();
+                    if (!criteriosOK) {
+                        console.log('❌ Critérios PWA não atendidos - por isso não é instalável');
+                    } else {
+                        console.log('✅ Critérios OK mas Android ainda não reconhece como PWA');
+                        showNotification('ℹ️ Instalação manual: Menu → "Adicionar à tela inicial"', 'info');
+                    }
+                } else if (deferredPrompt) {
+                    console.log('✅ PWA reconhecido como instalável!');
+                }
+            }, 5000);
+        });
+        
+        // Detectar quando foi instalado
         window.addEventListener('appinstalled', (evt) => {
-            console.log('🎉 PWA foi instalado com sucesso');
-            showNotification('✅ App instalado com sucesso!', 'success');
+            console.log('🎉 PWA FOI INSTALADO COM SUCESSO!');
+            showNotification('✅ App instalado! Agora pode ser usado offline.', 'success');
+            deferredPrompt = null;
         });
     </script>
     

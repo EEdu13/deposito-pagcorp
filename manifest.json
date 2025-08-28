@@ -1,81 +1,76 @@
 {
-  "name": "Dashboard Pagamentos LARSIL",
-  "short_name": "LARSIL Pay",
-  "description": "Dashboard de pagamentos e depósitos LARSIL",
-  "start_url": "/dashboard-pedidos-real.html",
+  "name": "PAGCORP - Depósito de Saldo",
+  "short_name": "PAGCORP",
+  "description": "Sistema de depósitos e pagamentos PAGCORP",
+  "start_url": "/",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui"],
-  "orientation": "portrait-primary",
-  "theme_color": "#2c3e50",
+  "orientation": "portrait",
+  "theme_color": "#2563eb",
   "background_color": "#ffffff",
   "scope": "/",
-  "id": "larsil-pagcorp-dashboard",
+  "id": "pagcorp-dashboard",
   "icons": [
     {
-      "src": "LARSIL_branco_fundo_transparente.png",
+      "src": "/icon-72x72.png",
       "sizes": "72x72",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "LARSIL_branco_fundo_transparente.png",
+      "src": "/icon-96x96.png",
       "sizes": "96x96",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "LARSIL_branco_fundo_transparente.png",
+      "src": "/icon-128x128.png",
       "sizes": "128x128",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "LARSIL_branco_fundo_transparente.png",
+      "src": "/icon-144x144.png",
       "sizes": "144x144",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "LARSIL_branco_fundo_transparente.png",
+      "src": "/icon-152x152.png",
       "sizes": "152x152",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "LARSIL_branco_fundo_transparente.png",
+      "src": "/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "LARSIL_branco_fundo_transparente.png",
+      "src": "/icon-384x384.png",
       "sizes": "384x384",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "LARSIL_branco_fundo_transparente.png",
+      "src": "/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "LARSIL_branco_fundo_transparente.png",
+      "src": "/icon-192x192-maskable.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "LARSIL_branco_fundo_transparente.png",
+      "src": "/icon-512x512-maskable.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
     }
   ],
   "categories": ["business", "finance"],
-  "lang": "pt-BR",
-  "prefer_related_applications": false,
-  "edge_side_panel": {
-    "preferred_width": 400
-  }
+  "lang": "pt-BR"
 }
