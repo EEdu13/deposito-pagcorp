@@ -891,8 +891,6 @@
             </h1>
             <div class="header-actions">
                 <button class="header-btn" onclick="toggleMonitoring()" id="monitoringBtn">🔔 Ativando...</button>
-                <button class="header-btn" onclick="forceCheck()">🔄 Verificar Agora</button>
-                <button class="header-btn" onclick="forceReset()">🆕 Reset & Verificar</button>
                 <button class="header-btn" onclick="atualizarDados()">Atualizar</button>
             </div>
         </header>
@@ -1028,59 +1026,6 @@
                 showNotification('🔔 Monitoramento automático desativado', 'info');
                 console.log('✅ Monitoramento desativado');
             }
-        }
-        
-        function forceCheck() {
-            if (!window.notificationPermission) {
-                showNotification('❌ Permissão de notificação necessária!', 'error');
-                return;
-            }
-            
-            console.log('🔄 Verificação MANUAL iniciada...');
-            showNotification('🔄 Verificando pedidos manualmente...', 'info');
-            
-            // NÃO resetar estado - deixar o sistema detectar mudanças naturalmente
-            console.log('🔄 Verificação manual SEM reset - para detectar mudanças reais');
-            
-            checkForNewPedidos().then(() => {
-                console.log('✅ Verificação manual concluída');
-                showNotification('✅ Verificação manual concluída!', 'success');
-            });
-        }
-        
-        function forceReset() {
-            if (!window.notificationPermission) {
-                showNotification('❌ Permissão de notificação necessária!', 'error');
-                return;
-            }
-            
-            console.log('🆕 RESET FORÇADO iniciado...');
-            showNotification('🆕 Resetando estado e verificando...', 'info');
-            
-            // Resetar estado para forçar detecção completa
-            const oldState = {
-                lastPedidosCount: window.lastPedidosCount,
-                lastPedidosHash: window.lastPedidosHash,
-                lastCheckTimestamp: window.lastCheckTimestamp
-            };
-            
-            window.lastPedidosCount = 0;
-            window.lastPedidosHash = '';
-            window.lastCheckTimestamp = null;
-            
-            console.log('🔄 Estado resetado FORÇADAMENTE:', {
-                oldState: oldState,
-                newState: { 
-                    lastPedidosCount: window.lastPedidosCount, 
-                    lastPedidosHash: window.lastPedidosHash, 
-                    lastCheckTimestamp: window.lastCheckTimestamp 
-                }
-            });
-            
-            checkForNewPedidos().then(() => {
-                console.log('✅ Reset e verificação concluídos');
-                showNotification('✅ Reset completo! Todas as notificações enviadas.', 'success');
-            });
         }
         
         async function checkForNewPedidosManual() {
