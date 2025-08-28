@@ -2,35 +2,28 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DEPÓSITO DE SALDO PAGCORP - Sistema de Refeições</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>PAGCORP - Depósito de Saldo</title>
     
-    <!-- PWA Manifest -->
-    <link rel="manifest" href="/manifest.json">
+    <!-- PWA Manifest - CRÍTICO -->
+    <link rel="manifest" href="./manifest.json">
     
-    <!-- Meta Tags PWA -->
+    <!-- Meta Tags PWA Essenciais -->
     <meta name="theme-color" content="#2563eb">
     <meta name="description" content="Sistema de depósitos e pagamentos PAGCORP">
     
-    <!-- Android/Chrome específico -->
+    <!-- Android Chrome PWA -->
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="mobile-web-app-status-bar-style" content="default">
     <meta name="mobile-web-app-title" content="PAGCORP">
     
-    <!-- iOS Safari específico -->
+    <!-- iOS Safari PWA -->
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="PAGCORP">
     
-    <!-- Chrome específico para forçar modo standalone -->
-    <meta name="application-name" content="PAGCORP">
-    <meta name="msapplication-starturl" content="/dashboard-pedidos-real.html">
-    <meta name="msapplication-navbutton-color" content="#2563eb">
-    
-    <!-- Ícones para diferentes dispositivos -->
-    <link rel="icon" type="image/png" sizes="32x32" href="/icon-192x192.png">
-    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192x192.png">
-    <link rel="apple-touch-icon" sizes="192x192" href="/icon-192x192.png">
+    <!-- Ícones otimizados -->
+    <link rel="icon" type="image/png" sizes="192x192" href="./icon-192x192.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="./icon-192x192.png">
     
     <!-- PWA Auto-Update Support -->
     <script>
@@ -145,91 +138,34 @@
         // Verificar critérios ao carregar
         window.addEventListener('load', verificarCriteriosPWA);
 
-        // Registrar Service Worker para auto-update
+        // Registrar Service Worker - SIMPLIFICADO
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('/sw.js')
+                navigator.serviceWorker.register('./sw.js')
                     .then(function(registration) {
-                        console.log('✅ Service Worker registrado com sucesso:', registration.scope);
-                        
-                        // Verificar por atualizações a cada 30 segundos
-                        setInterval(() => {
-                            registration.update();
-                        }, 30000);
-                        
-                        // Detectar quando há uma nova versão
-                        registration.addEventListener('updatefound', () => {
-                            const newWorker = registration.installing;
-                            newWorker.addEventListener('statechange', () => {
-                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                    // Nova versão disponível
-                                    showNotification('🔄 Nova versão disponível! Recarregando...', 'info');
-                                    setTimeout(() => {
-                                        window.location.reload();
-                                    }, 2000);
-                                }
-                            });
-                        });
+                        console.log('✅ Service Worker registrado:', registration.scope);
                     })
                     .catch(function(error) {
-                        console.log('⚠️ Service Worker não disponível (normal em desenvolvimento):', error.message);
-                        // Não exibir erro ao usuário, pois é normal em desenvolvimento
+                        console.log('❌ Service Worker falhou:', error);
                     });
             });
         }
 
-        // PWA Install Prompt - MELHORADO
+        // PWA Install Prompt - ULTRA SIMPLIFICADO
         let deferredPrompt;
-        let isAndroid = /android/i.test(navigator.userAgent);
-        let isChrome = /chrome/i.test(navigator.userAgent);
         
+        // Escutar evento de instalação PWA
         window.addEventListener('beforeinstallprompt', (e) => {
-            console.log('🎉 EVENTO beforeinstallprompt DISPARADO!');
-            console.log('   - PWA é oficialmente instalável pelo Chrome');
-            console.log('   - Dispositivo:', isAndroid ? 'Android' : 'Outro');
-            
-            // Previne o prompt automático
+            console.log('🎉 PWA PODE SER INSTALADO!');
             e.preventDefault();
-            // Salva o evento para usar depois
             deferredPrompt = e;
-            
-            // Mostra notificação imediata
-            showNotification('🎉 PWA detectado! App pode ser instalado!', 'success');
-            
-            // Instruções específicas para Android
-            if (isAndroid && isChrome) {
-                setTimeout(() => {
-                    showNotification('📱 Android: Menu Chrome → "Adicionar à tela inicial" ou ícone de instalação na barra', 'info');
-                }, 3000);
-            }
+            showNotification('📱 App pode ser instalado!', 'success');
         });
         
-        // Detectar se PWA não é reconhecido como instalável
-        window.addEventListener('load', function() {
-            setTimeout(() => {
-                if (!deferredPrompt && isAndroid && isChrome) {
-                    console.log('⚠️ PROBLEMA: beforeinstallprompt NÃO foi disparado');
-                    console.log('   - PWA pode não atender aos critérios do Android');
-                    console.log('   - Verificando critérios...');
-                    
-                    const criteriosOK = verificarCriteriosPWA();
-                    if (!criteriosOK) {
-                        console.log('❌ Critérios PWA não atendidos - por isso não é instalável');
-                    } else {
-                        console.log('✅ Critérios OK mas Android ainda não reconhece como PWA');
-                        showNotification('ℹ️ Instalação manual: Menu → "Adicionar à tela inicial"', 'info');
-                    }
-                } else if (deferredPrompt) {
-                    console.log('✅ PWA reconhecido como instalável!');
-                }
-            }, 5000);
-        });
-        
-        // Detectar quando foi instalado
+        // Confirmar instalação
         window.addEventListener('appinstalled', (evt) => {
-            console.log('🎉 PWA FOI INSTALADO COM SUCESSO!');
-            showNotification('✅ App instalado! Agora pode ser usado offline.', 'success');
-            deferredPrompt = null;
+            console.log('✅ PWA INSTALADO COM SUCESSO!');
+            showNotification('✅ App instalado!', 'success');
         });
     </script>
     

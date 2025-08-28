@@ -9,6 +9,9 @@
   "background_color": "#ffffff",
   "scope": "/",
   "id": "pagcorp-dashboard",
+  "dir": "ltr",
+  "lang": "pt-BR",
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/icon-72x72.png",
@@ -71,6 +74,5 @@
       "purpose": "maskable"
     }
   ],
-  "categories": ["business", "finance"],
-  "lang": "pt-BR"
+  "categories": ["business", "finance"]
 }

@@ -1,19 +1,10 @@
-// Service Worker para PWA Auto-Update
-const CACHE_NAME = 'pagcorp-v' + Date.now();
+// Service Worker para PWA - MINIMALISTA para Android
+const CACHE_NAME = 'pagcorp-v1.0.0';
 const urlsToCache = [
-    '/dashboard-pedidos-real.html',
-    '/manifest.json',
-    '/icon-72x72.png',
-    '/icon-96x96.png',
-    '/icon-128x128.png',
-    '/icon-144x144.png',
-    '/icon-152x152.png',
-    '/icon-192x192.png',
-    '/icon-384x384.png',
-    '/icon-512x512.png',
-    '/icon-192x192-maskable.png',
-    '/icon-512x512-maskable.png',
-    '/LARSIL_branco_fundo_transparente.png'
+    './dashboard-pedidos-real.html',
+    './manifest.json',
+    './icon-192x192.png',
+    './icon-512x512.png'
 ];
 
 // Instalar Service Worker
@@ -23,12 +14,13 @@ self.addEventListener('install', function(event) {
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then(function(cache) {
-                console.log('📦 Cache aberto');
+                console.log('📦 Cache básico criado');
                 return cache.addAll(urlsToCache);
             })
+            .catch(err => console.log('❌ Erro no cache:', err))
     );
     
-    // Força o novo Service Worker a se tornar ativo imediatamente
+    // Ativar imediatamente
     self.skipWaiting();
 });
 
@@ -40,7 +32,6 @@ self.addEventListener('activate', function(event) {
         caches.keys().then(function(cacheNames) {
             return Promise.all(
                 cacheNames.map(function(cacheName) {
-                    // Remove caches antigos
                     if (cacheName !== CACHE_NAME) {
                         console.log('🗑️ Removendo cache antigo:', cacheName);
                         return caches.delete(cacheName);
@@ -50,55 +41,33 @@ self.addEventListener('activate', function(event) {
         })
     );
     
-    // Força o Service Worker a controlar todas as páginas imediatamente
     return self.clients.claim();
 });
 
-// Interceptar requisições
+// Fetch Strategy - Network First para PWA
 self.addEventListener('fetch', function(event) {
-    // Para requisições da API, sempre buscar da rede (dados em tempo real)
+    // API sempre da rede
     if (event.request.url.includes('/api/')) {
-        event.respondWith(
-            fetch(event.request)
-                .catch(function() {
-                    console.log('🌐 API offline, tentando cache...');
-                    return caches.match(event.request);
-                })
-        );
+        event.respondWith(fetch(event.request));
         return;
     }
     
-    // Para outros arquivos, tentar cache primeiro
+    // Outros recursos: Network First, Cache como fallback
     event.respondWith(
-        caches.match(event.request)
+        fetch(event.request)
             .then(function(response) {
-                // Se encontrou no cache, retorna
-                if (response) {
-                    // Mas também busca da rede em paralelo para atualizar o cache
-                    fetch(event.request).then(function(fetchResponse) {
-                        if (fetchResponse && fetchResponse.status === 200) {
-                            const responseToCache = fetchResponse.clone();
-                            caches.open(CACHE_NAME).then(function(cache) {
-                                cache.put(event.request, responseToCache);
-                            });
-                        }
-                    }).catch(() => {
-                        console.log('🌐 Rede indisponível, usando cache');
+                // Se sucesso, salva no cache e retorna
+                if (response.status === 200) {
+                    const responseToCache = response.clone();
+                    caches.open(CACHE_NAME).then(function(cache) {
+                        cache.put(event.request, responseToCache);
                     });
-                    
-                    return response;
                 }
-                
-                // Se não encontrou no cache, busca da rede
-                return fetch(event.request);
-            }
-        )
+                return response;
+            })
+            .catch(function() {
+                // Se falhou, tenta cache
+                return caches.match(event.request);
+            })
     );
-});
-
-// Receber mensagens do cliente
-self.addEventListener('message', function(event) {
-    if (event.data && event.data.type === 'SKIP_WAITING') {
-        self.skipWaiting();
-    }
 });
