@@ -41,7 +41,8 @@
                         });
                     })
                     .catch(function(error) {
-                        console.log('❌ Erro ao registrar Service Worker:', error);
+                        console.log('⚠️ Service Worker não disponível (normal em desenvolvimento):', error.message);
+                        // Não exibir erro ao usuário, pois é normal em desenvolvimento
                     });
             });
         }
@@ -1226,7 +1227,6 @@
 
             dadosFiltrados = dados;
             renderizarPedidos();
-            atualizarEstatisticas();
         }
 
         function filtrarPorStatus(status) {
@@ -1261,6 +1261,9 @@
                 const totalValue = grupo.totalValue;
                 const quantidadePedidos = grupo.pedidos.length;
                 const isDepositado = grupo.pedidos.every(p => p.DEPOSITADO === 'DEPOSITADO');
+
+                // Pegar o projeto do primeiro pedido do grupo para exibir no card principal
+                const projetoPrincipal = grupo.pedidos[0].PROJETO || 'N/A';
 
                 const detalhesHtml = grupo.pedidos.map(pedido => {
                     const valorIndividual = parseFloat(pedido.TOTAL_PAGAR) || 0;
@@ -1303,6 +1306,7 @@
                             <input type="checkbox" class="payment-checkbox" data-group-index="${groupIndex}" onchange="updateBulkActions()" onclick="event.stopPropagation()">
                             <div class="payment-main-content">
                                 <div class="payment-title">${responsavel}</div>
+                                <div class="projeto-info" style="font-size: 0.75rem; color: #666; margin: 2px 0;">${projetoPrincipal}</div>
                                 <div class="payment-main-info">
                                     <div>
                                         <div class="payment-subtitle">${pagcgorp}</div>
@@ -1357,9 +1361,6 @@
             
             const totalCheckboxes = document.querySelectorAll('.payment-checkbox').length;
             selectAll.checked = checkboxes.length === totalCheckboxes && totalCheckboxes > 0;
-            
-            // Atualizar contador de selecionados
-            document.getElementById('selectedCount').textContent = checkboxes.length;
         }
 
         async function depositarGrupo(groupIndex) {
@@ -1543,16 +1544,6 @@
             
             // Rerender
             renderizarPedidos();
-            atualizarEstatisticas();
-        }
-
-        function atualizarEstatisticas() {
-            const totalCount = dadosFiltrados.length;
-            document.getElementById('totalCount').textContent = totalCount;
-            
-            // Atualizar contador de selecionados
-            const checkboxes = document.querySelectorAll('.payment-checkbox:checked');
-            document.getElementById('selectedCount').textContent = checkboxes.length;
         }
 
         function limparCache() {
@@ -1568,10 +1559,6 @@
             
             // Reset seleções
             document.getElementById('selectAll').checked = false;
-            
-            // Reset estatísticas
-            document.getElementById('totalCount').textContent = '0';
-            document.getElementById('selectedCount').textContent = '0';
             
             mostrarMensagemInicial();
             showNotification('Cache limpo!', 'success');
