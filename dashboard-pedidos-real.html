@@ -151,21 +151,45 @@
             });
         }
 
-        // PWA Install Prompt - ULTRA SIMPLIFICADO
+        // PWA Install Prompt - DETECÇÃO INTELIGENTE DE NAVEGADORES
         let deferredPrompt;
+        
+        // Detectar tipo de navegador Android
+        const isSamsungInternet = /samsungbrowser/i.test(navigator.userAgent);
+        const isChrome = /chrome/i.test(navigator.userAgent) && !/samsungbrowser|miuibrowser|huaweibrowser/i.test(navigator.userAgent);
+        const isManufacturerBrowser = /miuibrowser|huaweibrowser|oppo|vivo/i.test(navigator.userAgent);
+        const isAndroid = /android/i.test(navigator.userAgent);
         
         // Escutar evento de instalação PWA
         window.addEventListener('beforeinstallprompt', (e) => {
             console.log('🎉 PWA PODE SER INSTALADO!');
             e.preventDefault();
             deferredPrompt = e;
-            showNotification('📱 App pode ser instalado!', 'success');
+            
+            if (isSamsungInternet || isManufacturerBrowser) {
+                showNotification('🎉 PWA detectado! Clique em "Instalar app"', 'success');
+            } else {
+                showNotification('📱 App pode ser instalado!', 'success');
+            }
+        });
+        
+        // Orientar usuários se PWA não for detectado
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                if (!deferredPrompt && isAndroid) {
+                    if (isChrome) {
+                        showNotification('ℹ️ Chrome: Use "Criar atalho" - funciona igual a um app instalado', 'info');
+                    } else {
+                        showNotification('💡 Para instalar: Menu do navegador → "Adicionar à tela inicial"', 'info');
+                    }
+                }
+            }, 8000);
         });
         
         // Confirmar instalação
         window.addEventListener('appinstalled', (evt) => {
             console.log('✅ PWA INSTALADO COM SUCESSO!');
-            showNotification('✅ App instalado!', 'success');
+            showNotification('✅ App instalado na tela inicial!', 'success');
         });
     </script>
     
