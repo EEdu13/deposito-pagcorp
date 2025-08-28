@@ -1,10 +1,10 @@
 // Service Worker para PWA - MINIMALISTA para Android
 const CACHE_NAME = 'pagcorp-v1.0.0';
 const urlsToCache = [
-    './dashboard-pedidos-real.html',
-    './manifest.json',
-    './icon-192x192.png',
-    './icon-512x512.png'
+    '/dashboard-pedidos-real.html',
+    '/manifest.json',
+    '/icon-192x192.png',
+    '/icon-512x512.png'
 ];
 
 // Instalar Service Worker
