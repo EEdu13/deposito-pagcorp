@@ -651,14 +651,34 @@
 
         .payments-container {
             padding: 1rem;
-            max-height: 50vh;
+            max-height: 75vh;
             overflow-y: auto;
+            scroll-behavior: smooth;
+        }
+
+        /* Melhorar estilo da barra de rolagem */
+        .payments-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .payments-container::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 10px;
+        }
+
+        .payments-container::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+
+        .payments-container::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
         }
 
         .payment-card {
             background: white;
             border-radius: 16px;
-            margin-bottom: 0.75rem;
+            margin-bottom: 1rem;
             box-shadow: 0 2px 8px rgba(0,0,0,0.08);
             overflow: hidden;
             transition: all 0.3s ease;
@@ -772,7 +792,7 @@
         }
 
         .payment-card.expanded .payment-details {
-            max-height: 300px;
+            max-height: none;
         }
 
         .payment-details-content {
@@ -780,8 +800,6 @@
             border-top: 1px solid #f3f4f6;
             margin-top: 1rem;
             padding-top: 1rem;
-            max-height: 250px;
-            overflow-y: auto;
         }
 
         .detail-row {
@@ -849,6 +867,17 @@
         }
 
         /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .payments-container {
+                max-height: 70vh;
+                padding: 0.75rem;
+            }
+            
+            .payment-card {
+                margin-bottom: 0.75rem;
+            }
+        }
+
         @media (min-width: 768px) {
             .app-container {
                 max-width: 420px;
@@ -856,6 +885,10 @@
                 border-radius: 20px;
                 overflow: hidden;
                 margin-top: 2rem;
+            }
+            
+            .payments-container {
+                max-height: 80vh;
             }
         }
 
