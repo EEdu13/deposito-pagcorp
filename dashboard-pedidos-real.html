@@ -33,12 +33,20 @@
     
     <!-- PWA Auto-Update Support -->
     <script>
+        // Verificar se PWA é instalável
+        window.addEventListener('load', function() {
+            console.log('🔍 Verificando critérios PWA...');
+            console.log('Service Worker disponível:', 'serviceWorker' in navigator);
+            console.log('HTTPS:', location.protocol === 'https:');
+            console.log('Manifest:', document.querySelector('link[rel="manifest"]') !== null);
+        });
+
         // Registrar Service Worker para auto-update
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function() {
                 navigator.serviceWorker.register('/sw.js')
                     .then(function(registration) {
-                        console.log('✅ Service Worker registrado:', registration.scope);
+                        console.log('✅ Service Worker registrado com sucesso:', registration.scope);
                         
                         // Verificar por atualizações a cada 30 segundos
                         setInterval(() => {
@@ -68,18 +76,42 @@
 
         // PWA Install Prompt
         let deferredPrompt;
+        let isAndroid = /android/i.test(navigator.userAgent);
         
         window.addEventListener('beforeinstallprompt', (e) => {
-            console.log('💾 PWA pode ser instalado');
+            console.log('💾 PWA install prompt disponível');
+            console.log('Dispositivo Android:', isAndroid);
             // Previne o prompt automático
             e.preventDefault();
             // Salva o evento para usar depois
             deferredPrompt = e;
             
-            // Mostra uma notificação discreta sobre instalação
-            setTimeout(() => {
-                showNotification('📱 Este app pode ser instalado na tela inicial do seu dispositivo!', 'info');
-            }, 5000);
+            // Mostra prompt mais cedo em Android
+            if (isAndroid) {
+                setTimeout(() => {
+                    showNotification('📱 App disponível! Toque no menu do navegador → "Adicionar à tela inicial"', 'info');
+                }, 2000);
+            } else {
+                setTimeout(() => {
+                    showNotification('📱 Este app pode ser instalado na tela inicial do seu dispositivo!', 'info');
+                }, 5000);
+            }
+        });
+        
+        // Detectar se não recebeu o prompt em Android
+        window.addEventListener('load', function() {
+            if (isAndroid) {
+                setTimeout(() => {
+                    if (!deferredPrompt) {
+                        console.log('⚠️ Android não detectou PWA como instalável');
+                        console.log('Verificando requisitos...');
+                        // Mostrar instruções manuais
+                        setTimeout(() => {
+                            showNotification('📱 Para instalar: Menu do Chrome → "Adicionar à tela inicial"', 'info');
+                        }, 10000);
+                    }
+                }, 3000);
+            }
         });
 
         window.addEventListener('appinstalled', (evt) => {
