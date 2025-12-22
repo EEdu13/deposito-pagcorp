@@ -102,8 +102,8 @@ def get_pedidos():
         # Buscar apenas pedidos dos últimos 15 dias
         cursor.execute("""
             SELECT * FROM PEDIDOS 
-            WHERE DATA >= DATEADD(day, -15, GETDATE())
-            ORDER BY DATA DESC
+            WHERE DATA_ENVIO1 >= DATEADD(day, -15, GETDATE())
+            ORDER BY DATA_ENVIO1 DESC
         """)
         dados = cursor.fetchall()
         
