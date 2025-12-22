@@ -158,8 +158,7 @@ def depositar_pedidos():
         
         query = f"""
         UPDATE PEDIDOS 
-        SET DEPOSITADO = 'DEPOSITADO',
-            DATA_DEPOSITO = GETDATE()
+        SET DEPOSITADO = 'DEPOSITADO'
         WHERE (DEPOSITADO IS NULL OR DEPOSITADO != 'DEPOSITADO')
         AND ({' OR '.join(condicoes)})
         """
