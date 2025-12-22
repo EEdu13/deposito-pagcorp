@@ -72,6 +72,22 @@ def dashboard():
     print("📄 Servindo dashboard")
     return send_file('dashboard-pedidos-real.html')
 
+@app.route('/sw.js')
+def service_worker():
+    return send_file('sw.js')
+
+@app.route('/manifest.json')
+def manifest():
+    return send_file('manifest.json')
+
+@app.route('/<path:filename>')
+def static_files(filename):
+    """Serve arquivos estáticos (imagens, etc)"""
+    try:
+        return send_file(filename)
+    except:
+        return '', 404
+
 @app.route('/api/pedidos')
 def get_pedidos():
     """Busca todos os pedidos"""
