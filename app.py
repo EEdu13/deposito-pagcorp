@@ -99,7 +99,12 @@ def get_pedidos():
             return jsonify({'success': False, 'error': 'Erro de conexão'}), 500
 
         cursor = connection.cursor(as_dict=True)
-        cursor.execute("SELECT * FROM PEDIDOS")
+        # Buscar apenas pedidos dos últimos 15 dias
+        cursor.execute("""
+            SELECT * FROM PEDIDOS 
+            WHERE DATA >= DATEADD(day, -15, GETDATE())
+            ORDER BY DATA DESC
+        """)
         dados = cursor.fetchall()
         
         dados_processados, colunas = processar_dados_query(dados)

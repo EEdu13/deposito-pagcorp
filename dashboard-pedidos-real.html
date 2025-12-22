@@ -856,7 +856,7 @@
                 const resultado = await enviarDepositoParaServidor(grupo.pedidos);
                 
                 if (resultado.success) {
-                    showNotification(`✅ ${resultado.pedidos_atualizados} depositado(s)!`, 'success');
+                    showNotification(`✅ Depositado!`, 'success');
                 } else {
                     throw new Error(resultado.error);
                 }
@@ -898,7 +898,7 @@
                 const resultado = await enviarDepositoParaServidor(todosPedidos);
                 
                 if (resultado.success) {
-                    showNotification(`✅ ${resultado.pedidos_atualizados} depositado(s)!`, 'success');
+                    showNotification(`✅ Depositado!`, 'success');
                 } else {
                     throw new Error(resultado.error);
                 }
