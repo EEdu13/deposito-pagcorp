@@ -127,12 +127,15 @@ def depositar_pedidos():
     
     try:
         data = request.get_json()
+        print(f"📦 Dados recebidos: {data}")
         pedidos = data.get('pedidos', [])
         
         if not pedidos:
+            print("⚠️ Nenhum pedido encontrado no request")
             return jsonify({'success': False, 'error': 'Nenhum pedido'}), 400
         
         print(f"📋 Processando {len(pedidos)} pedidos...")
+        print(f"📋 Primeiro pedido: {pedidos[0] if pedidos else 'N/A'}")
         
         connection = conectar_azure_sql()
         if not connection:
@@ -177,7 +180,9 @@ def depositar_pedidos():
         })
         
     except Exception as e:
-        print(f"❌ Erro: {e}")
+        print(f"❌ Erro ao depositar: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 # ========== INICIALIZAÇÃO ==========
