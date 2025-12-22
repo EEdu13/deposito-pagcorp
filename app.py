@@ -164,7 +164,8 @@ def depositar_pedidos():
         AND ({' OR '.join(condicoes)})
         """
         
-        cursor.execute(query, parametros)
+        # Converter lista para tupla (pymssql exige tupla ou dict)
+        cursor.execute(query, tuple(parametros))
         pedidos_atualizados = cursor.rowcount
         
         connection.commit()
