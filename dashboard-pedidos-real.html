@@ -451,7 +451,7 @@
             API_URL: (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
                 ? 'http://localhost:5000/api'
                 : '/api',
-            MONITORING_INTERVAL: 10000, // 10 segundos
+            MONITORING_INTERVAL: 60000, // 60 segundos (otimizado para reduzir carga)
             NOTIFICATION_COOLDOWN: 15000, // 15 segundos
             RECENT_PEDIDOS_MINUTES: 15 // Pedidos dos últimos 15 minutos
         };

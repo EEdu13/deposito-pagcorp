@@ -3,7 +3,9 @@
 import os
 from flask import Flask, jsonify, send_file, request
 from flask_cors import CORS
-import pymssql
+import pyodbc
+from queue import Queue
+from threading import Lock
 from datetime import datetime
 
 app = Flask(__name__)
@@ -15,43 +17,82 @@ SQL_DATABASE = os.getenv('SQL_DATABASE', 'database')
 SQL_USERNAME = os.getenv('SQL_USERNAME', 'user')
 SQL_PASSWORD = os.getenv('SQL_PASSWORD', 'password')
 
+# ========== CONNECTION POOL ==========
+class ConnectionPool:
+    def __init__(self, pool_size=5):
+        self.pool_size = pool_size
+        self.pool = Queue(maxsize=pool_size)
+        self.lock = Lock()
+        self._initialize_pool()
+    
+    def _create_connection(self):
+        """Cria nova conexão pyodbc"""
+        connection_string = (
+            f'DRIVER={{ODBC Driver 18 for SQL Server}};'
+            f'SERVER={SQL_SERVER};'
+            f'DATABASE={SQL_DATABASE};'
+            f'UID={SQL_USERNAME};'
+            f'PWD={SQL_PASSWORD};'
+            f'Encrypt=yes;'
+            f'TrustServerCertificate=yes;'
+            f'Connection Timeout=30;'
+        )
+        return pyodbc.connect(connection_string)
+    
+    def _initialize_pool(self):
+        """Inicializa pool com conexões"""
+        for _ in range(self.pool_size):
+            try:
+                conn = self._create_connection()
+                self.pool.put(conn)
+            except Exception as e:
+                print(f"⚠️ Erro ao criar conexão do pool: {e}")
+    
+    def get_connection(self):
+        """Obtém conexão do pool"""
+        try:
+            conn = self.pool.get(timeout=10)
+            # Testa se conexão está ativa
+            try:
+                conn.cursor().execute("SELECT 1")
+                return conn
+            except:
+                # Reconecta se estiver morta
+                try:
+                    conn.close()
+                except:
+                    pass
+                return self._create_connection()
+        except:
+            return self._create_connection()
+    
+    def return_connection(self, conn):
+        """Retorna conexão ao pool"""
+        try:
+            if self.pool.qsize() < self.pool_size:
+                self.pool.put(conn)
+            else:
+                conn.close()
+        except:
+            try:
+                conn.close()
+            except:
+                pass
+
+# Inicializar pool global
+pool = ConnectionPool(pool_size=10)
+
 # ========== FUNÇÕES AUXILIARES ==========
 def conectar_azure_sql():
-    """Conecta ao Azure SQL Server com retry"""
-    try:
-        print(f"🔌 Conectando ao {SQL_SERVER}...")
-        connection = pymssql.connect(
-            server=SQL_SERVER,
-            user=SQL_USERNAME,
-            password=SQL_PASSWORD,
-            database=SQL_DATABASE,
-            timeout=30,
-            login_timeout=30
-        )
-        print("✅ Conexão estabelecida!")
-        return connection
-    except Exception as e:
-        print(f"❌ Erro ao conectar: {e}")
-        return None
+    """Obtém conexão do pool (mantida para compatibilidade)"""
+    return pool.get_connection()
 
-def processar_dados_query(dados):
-    """Processa resultados da query para JSON"""
-    dados_processados = []
-    colunas = []
-    
-    if dados:
-        colunas = list(dados[0].keys())
-        
-        for linha in dados:
-            linha_processada = {}
-            for coluna, valor in linha.items():
-                if isinstance(valor, datetime):
-                    linha_processada[coluna] = valor.isoformat()
-                else:
-                    linha_processada[coluna] = valor
-            dados_processados.append(linha_processada)
-    
-    return dados_processados, colunas
+def dict_row_factory(cursor):
+    """Converte Row em dict para JSON"""
+    columns = [column[0] for column in cursor.description]
+    def create_row(row):
+        return dict(zip(columns, row))
+    return create_row
 
 # ========== ROTAS ==========
 @app.route('/favicon.ico')
@@ -90,49 +131,67 @@ def static_files(filename):
 
 @app.route('/api/pedidos')
 def get_pedidos():
-    """Busca todos os pedidos"""
+    """Busca todos os pedidos - OTIMIZADO"""
     print("🔍 GET /api/pedidos")
     
+    connection = None
     try:
         connection = conectar_azure_sql()
         if not connection:
             return jsonify({'success': False, 'error': 'Erro de conexão'}), 500
 
-        cursor = connection.cursor(as_dict=True)
-        # Buscar apenas pedidos dos últimos 15 dias
+        cursor = connection.cursor()
+        
+        # SELECT otimizado: apenas colunas necessárias + datetime convertido no SQL
         cursor.execute("""
-            SELECT * FROM PEDIDOS 
+            SELECT 
+                RESPONSAVEL_PELO_CARTAO,
+                PAGCORP,
+                TOTAL_PAGAR,
+                CONVERT(VARCHAR(23), DATA_ENVIO1, 126) as DATA_ENVIO1,
+                DEPOSITADO,
+                FECHAMENTO,
+                APROVADO_POR,
+                PROJETO,
+                OBSERVACOES
+            FROM PEDIDOS WITH (NOLOCK)
             WHERE DATA_ENVIO1 >= DATEADD(day, -15, GETDATE())
             ORDER BY DATA_ENVIO1 DESC
         """)
-        dados = cursor.fetchall()
         
-        dados_processados, colunas = processar_dados_query(dados)
+        # Converter para dict
+        columns = [column[0] for column in cursor.description]
+        dados = [dict(zip(columns, row)) for row in cursor.fetchall()]
         
         cursor.close()
-        connection.close()
+        pool.return_connection(connection)
         
-        print(f"✅ {len(dados_processados)} registros retornados")
+        print(f"✅ {len(dados)} registros retornados")
         
         return jsonify({
             'success': True,
-            'data': dados_processados,
-            'columns': colunas,
-            'count': len(dados_processados)
+            'data': dados,
+            'columns': columns,
+            'count': len(dados)
         })
         
     except Exception as e:
         print(f"❌ Erro: {e}")
+        if connection:
+            try:
+                connection.close()
+            except:
+                pass
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/pedidos/depositar', methods=['POST'])
 def depositar_pedidos():
-    """Atualiza status de depositado - OTIMIZADO COM BATCH UPDATE"""
+    """Atualiza status de depositado - OTIMIZADO COM MERGE"""
     print("💰 POST /api/pedidos/depositar")
     
+    connection = None
     try:
         data = request.get_json()
-        print(f"📦 Dados recebidos: {data}")
         pedidos = data.get('pedidos', [])
         
         if not pedidos:
@@ -140,7 +199,6 @@ def depositar_pedidos():
             return jsonify({'success': False, 'error': 'Nenhum pedido'}), 400
         
         print(f"📋 Processando {len(pedidos)} pedidos...")
-        print(f"📋 Primeiro pedido: {pedidos[0] if pedidos else 'N/A'}")
         
         connection = conectar_azure_sql()
         if not connection:
@@ -148,35 +206,47 @@ def depositar_pedidos():
         
         cursor = connection.cursor()
         
-        # 🚀 OTIMIZAÇÃO: Batch update com IN clause
-        # Criar lista de tuplas (responsavel, pagcorp, total)
+        # 🚀 OTIMIZAÇÃO: Usar tabela temporária + MERGE (muito mais rápido que OR dinâmico)
+        # 1. Criar tabela temporária
+        cursor.execute("""
+            CREATE TABLE #TempDepositos (
+                RESPONSAVEL_PELO_CARTAO NVARCHAR(255),
+                PAGCORP NVARCHAR(100),
+                TOTAL_PAGAR DECIMAL(18,2)
+            )
+        """)
+        
+        # 2. Inserir dados em batch
         valores = [(p.get('RESPONSAVEL_PELO_CARTAO'), p.get('PAGCORP'), p.get('TOTAL_PAGAR')) 
                    for p in pedidos]
         
-        # Construir query com múltiplas condições
-        condicoes = []
-        parametros = []
+        cursor.executemany(
+            "INSERT INTO #TempDepositos (RESPONSAVEL_PELO_CARTAO, PAGCORP, TOTAL_PAGAR) VALUES (?, ?, ?)",
+            valores
+        )
         
-        for responsavel, pagcorp, total in valores:
-            condicoes.append("(RESPONSAVEL_PELO_CARTAO = %s AND PAGCORP = %s AND TOTAL_PAGAR = %s)")
-            parametros.extend([responsavel, pagcorp, total])
+        # 3. MERGE otimizado (1 operação ao invés de N)
+        cursor.execute("""
+            UPDATE p
+            SET p.DEPOSITADO = 'DEPOSITADO'
+            FROM PEDIDOS p
+            INNER JOIN #TempDepositos t ON 
+                p.RESPONSAVEL_PELO_CARTAO = t.RESPONSAVEL_PELO_CARTAO AND
+                p.PAGCORP = t.PAGCORP AND
+                p.TOTAL_PAGAR = t.TOTAL_PAGAR
+            WHERE (p.DEPOSITADO IS NULL OR p.DEPOSITADO != 'DEPOSITADO')
+        """)
         
-        query = f"""
-        UPDATE PEDIDOS 
-        SET DEPOSITADO = 'DEPOSITADO'
-        WHERE (DEPOSITADO IS NULL OR DEPOSITADO != 'DEPOSITADO')
-        AND ({' OR '.join(condicoes)})
-        """
-        
-        # Converter lista para tupla (pymssql exige tupla ou dict)
-        cursor.execute(query, tuple(parametros))
         pedidos_atualizados = cursor.rowcount
+        
+        # 4. Limpar temp table
+        cursor.execute("DROP TABLE #TempDepositos")
         
         connection.commit()
         cursor.close()
-        connection.close()
+        pool.return_connection(connection)
         
-        print(f"✅ {pedidos_atualizados} pedidos atualizados em UMA query!")
+        print(f"✅ {pedidos_atualizados} pedidos atualizados (MERGE otimizado)!")
         
         return jsonify({
             'success': True,
@@ -186,6 +256,12 @@ def depositar_pedidos():
         
     except Exception as e:
         print(f"❌ Erro ao depositar: {e}")
+        if connection:
+            try:
+                connection.rollback()
+                connection.close()
+            except:
+                pass
         import traceback
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
