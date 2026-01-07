@@ -23,7 +23,7 @@ class ConnectionPool:
         self.pool_size = pool_size
         self.pool = Queue(maxsize=pool_size)
         self.lock = Lock()
-        self._initialize_pool()
+        self.initialized = False
     
     def _create_connection(self):
         """Cria nova conexão pyodbc"""
@@ -39,19 +39,11 @@ class ConnectionPool:
         )
         return pyodbc.connect(connection_string)
     
-    def _initialize_pool(self):
-        """Inicializa pool com conexões"""
-        for _ in range(self.pool_size):
-            try:
-                conn = self._create_connection()
-                self.pool.put(conn)
-            except Exception as e:
-                print(f"⚠️ Erro ao criar conexão do pool: {e}")
-    
     def get_connection(self):
-        """Obtém conexão do pool"""
+        """Obtém conexão do pool (lazy loading)"""
         try:
-            conn = self.pool.get(timeout=10)
+            # Tenta pegar do pool
+            conn = self.pool.get_nowait()
             # Testa se conexão está ativa
             try:
                 conn.cursor().execute("SELECT 1")
@@ -64,13 +56,14 @@ class ConnectionPool:
                     pass
                 return self._create_connection()
         except:
+            # Pool vazio - cria nova conexão
             return self._create_connection()
     
     def return_connection(self, conn):
         """Retorna conexão ao pool"""
         try:
             if self.pool.qsize() < self.pool_size:
-                self.pool.put(conn)
+                self.pool.put_nowait(conn)
             else:
                 conn.close()
         except:
@@ -79,7 +72,7 @@ class ConnectionPool:
             except:
                 pass
 
-# Inicializar pool global
+# Inicializar pool global (vazio - lazy loading)
 pool = ConnectionPool(pool_size=10)
 
 # ========== FUNÇÕES AUXILIARES ==========
